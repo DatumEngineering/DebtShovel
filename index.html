@@ -35,6 +35,15 @@
     </div>
   </div>
   <div class="header-actions">
+    <button class="btn btn-secondary btn-sm" id="btn-export" aria-label="Export debts to JSON file" title="Save your debts to a file">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Save
+    </button>
+    <label class="btn btn-secondary btn-sm" for="import-file" aria-label="Import debts from JSON file" title="Load debts from a saved file" tabindex="0" role="button">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      Load
+    </label>
+    <input type="file" id="import-file" accept=".json" style="display:none" aria-hidden="true" />
     <button class="btn-theme" id="btn-theme" aria-label="Toggle light/dark theme" title="Toggle theme">
       <svg id="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
         <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
@@ -370,7 +379,8 @@
         </div>
 
         <div class="warn-badge" id="m-payment-warn" style="display:none;" role="alert">
-          ⚠️ Payment doesn't cover interest — debt will never pay off
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          Payment doesn't cover interest — debt will never pay off
         </div>
       </div>
 
@@ -410,7 +420,7 @@
                 <option value="9">September</option><option value="10">October</option>
                 <option value="11">November</option><option value="12">December</option>
               </select>
-              <input type="number" id="a-start-year" placeholder="Year" min="1900" max="2100" step="1" aria-label="Start year" />
+              <input type="text" inputmode="numeric" id="a-start-year" placeholder="Year" maxlength="4" aria-label="Start year" />
             </div>
             <span class="field-error" id="a-start-date-err" role="alert"></span>
           </div>
@@ -456,7 +466,8 @@
           </div>
         </div>
         <div class="callout-note escrow-note" id="a-escrow-persist-note" style="display:none">
-          ⚠️ Escrow (taxes &amp; insurance) continues after the mortgage is paid off — budget for it separately.
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0;margin-top:1px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          Escrow (taxes &amp; insurance) continues after the mortgage is paid off — budget for it separately.
         </div>
 
         <div class="callout-note">
@@ -516,7 +527,7 @@
               <option value="9">September</option><option value="10">October</option>
               <option value="11">November</option><option value="12">December</option>
             </select>
-            <input type="number" id="p-target-year" placeholder="Year" min="2024" max="2100" step="1" aria-label="Target payoff year" />
+            <input type="text" inputmode="numeric" id="p-target-year" placeholder="Year" maxlength="4" aria-label="Target payoff year" />
           </div>
           <span class="field-error" id="p-target-date-err" role="alert"></span>
         </div>

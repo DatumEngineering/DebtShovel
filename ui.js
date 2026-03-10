@@ -1117,6 +1117,37 @@ function saveToStorage() {
   }
 }
 
+function exportToFile() {
+  const data = JSON.stringify({ debts, nextId }, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'debtshovel-backup.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importFromFile(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (Array.isArray(data.debts)) {
+        debts = data.debts.map(d => ({
+          ...d,
+          freedAllocation: d.freedAllocation === 'global' ? '100' : (d.freedAllocation || '100'),
+        }));
+      }
+      if (data.nextId) nextId = data.nextId;
+      refreshAll();
+    } catch (err) {
+      alert('Could not load file — make sure it is a DebtShovel backup (.json).');
+    }
+  };
+  reader.readAsText(file);
+}
+
 function loadFromStorage() {
   try {
     const raw = localStorage.getItem('debtshovel-v1');
@@ -1173,6 +1204,11 @@ function wireEvents() {
   // Header buttons
   $('btn-add-debt')?.addEventListener('click', openAddModal);
   $('btn-theme')?.addEventListener('click', toggleTheme);
+  $('btn-export')?.addEventListener('click', exportToFile);
+  $('import-file')?.addEventListener('change', e => {
+    const file = e.target.files?.[0];
+    if (file) { importFromFile(file); e.target.value = ''; }
+  });
 
   // Modal close
   $('modal-close')?.addEventListener('click', closeModal);
