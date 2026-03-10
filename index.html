@@ -35,7 +35,17 @@
     </div>
   </div>
   <div class="header-actions">
-    <button class="btn-theme" id="btn-theme" aria-label="Toggle light/dark theme" title="Toggle theme">☀️</button>
+    <button class="btn-theme" id="btn-theme" aria-label="Toggle light/dark theme" title="Toggle theme">
+      <svg id="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+        <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+      </svg>
+      <svg id="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="display:none" aria-hidden="true">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      </svg>
+    </button>
   </div>
 </header>
 
@@ -47,7 +57,8 @@
     <div class="section-header">
       <h2 id="heading-debts">Your Debts</h2>
       <button class="btn btn-accent" id="btn-add-debt" aria-label="Add a new debt">
-        + Add Debt
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add Debt
       </button>
     </div>
 
@@ -60,7 +71,10 @@
             <th scope="col">Balance</th>
             <th scope="col">Min. Payment</th>
             <th scope="col">APR</th>
-            <th scope="col" title="When this debt is paid off, redirect that monthly payment toward remaining debts">Freed Payment ⓘ</th>
+            <th scope="col">
+              Freed Payment
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" title="When this debt is paid off, redirect that monthly payment toward remaining debts" style="vertical-align:middle;margin-left:2px;opacity:0.6"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            </th>
             <th scope="col">Payoff Date <span class="sr-only">(minimum payments only)</span></th>
             <th scope="col"><span class="sr-only">Actions</span></th>
           </tr>
@@ -76,15 +90,21 @@
 
     <!-- Empty state (visible when no debts) -->
     <div class="empty-state" id="empty-state" aria-live="polite">
-      <div class="empty-icon" aria-hidden="true">📋</div>
+      <div class="empty-icon" aria-hidden="true">
+        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+          <rect x="9" y="3" width="6" height="4" rx="1"/>
+          <line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="12" y2="16"/>
+        </svg>
+      </div>
       <strong>No debts added yet</strong>
       <p>Click <em>+ Add Debt</em> to enter your first debt and start your payoff plan.</p>
     </div>
 
     <!-- Simulation cap warning -->
     <div class="cap-warning" id="cap-warning" role="alert">
-      ⚠️ One or more debts will take over 50 years to pay off at current minimums.
-      Consider increasing payments or the slider above.
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      One or more debts will take over 50 years to pay off at current minimums. Consider increasing payments or the slider above.
     </div>
   </section>
 
@@ -259,7 +279,9 @@
 
     <div class="modal-header">
       <h2 id="modal-title">Add Debt</h2>
-      <button class="btn-icon" id="modal-close" aria-label="Close modal">✕</button>
+      <button class="btn-icon" id="modal-close" aria-label="Close modal">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
     </div>
 
     <div class="modal-body">
@@ -272,7 +294,9 @@
         <div class="mode-cards" role="list">
 
           <button class="mode-card" id="mode-manual" data-mode="manual" role="listitem">
-            <div class="mode-card-icon" aria-hidden="true">✏️</div>
+            <div class="mode-card-icon" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </div>
             <div class="mode-card-text">
               <div class="mode-card-title">I know my balance &amp; payment</div>
               <div class="mode-card-sub">Enter balance, APR, and monthly payment directly</div>
@@ -281,7 +305,9 @@
           </button>
 
           <button class="mode-card" id="mode-amortizing" data-mode="amortizing" role="listitem">
-            <div class="mode-card-icon" aria-hidden="true">🏠</div>
+            <div class="mode-card-icon" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            </div>
             <div class="mode-card-text">
               <div class="mode-card-title">I know my original loan details</div>
               <div class="mode-card-sub">Enter original balance, start date, term &amp; APR — we calculate the rest</div>
@@ -290,7 +316,9 @@
           </button>
 
           <button class="mode-card" id="mode-payoff-date" data-mode="payoffDate" role="listitem">
-            <div class="mode-card-icon" aria-hidden="true">📅</div>
+            <div class="mode-card-icon" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </div>
             <div class="mode-card-text">
               <div class="mode-card-title">I know when it'll be paid off</div>
               <div class="mode-card-sub">Enter balance, APR, and target date — we calculate your required payment</div>
@@ -303,7 +331,7 @@
 
       <!-- Step 2a: Manual -->
       <div class="step" id="step-2a" aria-label="Step 2: Manual entry">
-        <button class="back-link" id="back-from-manual" aria-label="Back to mode selection">← Back</button>
+        <button class="back-link" id="back-from-manual" aria-label="Back to mode selection"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg> Back</button>
 
         <div class="field-group">
           <label for="m-name">Account Name</label>
@@ -348,7 +376,7 @@
 
       <!-- Step 2b: Amortizing Loan -->
       <div class="step" id="step-2b" aria-label="Step 2: Amortizing loan entry">
-        <button class="back-link" id="back-from-amortizing" aria-label="Back to mode selection">← Back</button>
+        <button class="back-link" id="back-from-amortizing" aria-label="Back to mode selection"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg> Back</button>
 
         <div class="field-group">
           <label for="a-name">Account Name</label>
@@ -455,7 +483,7 @@
 
       <!-- Step 2c: Payoff Date -->
       <div class="step" id="step-2c" aria-label="Step 2: Payoff date entry">
-        <button class="back-link" id="back-from-payoff" aria-label="Back to mode selection">← Back</button>
+        <button class="back-link" id="back-from-payoff" aria-label="Back to mode selection"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg> Back</button>
 
         <div class="field-group">
           <label for="p-name">Account Name</label>
