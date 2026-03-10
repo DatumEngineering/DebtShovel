@@ -146,7 +146,6 @@ function renderTable() {
   const tbody = $('debt-tbody');
   const tfoot = $('debt-tfoot');
   const emptyState = $('empty-state');
-  const debtFreeBanner = $('debt-free-banner');
   const capWarning = $('cap-warning');
 
   if (!tbody) return;
@@ -156,22 +155,11 @@ function renderTable() {
     tbody.innerHTML = '';
     tfoot.innerHTML = '';
     emptyState.style.display = 'flex';
-    debtFreeBanner.classList.remove('visible');
     capWarning.classList.remove('visible');
     return;
   }
 
   emptyState.style.display = 'none';
-
-  // Check for all-zero balances (debt free)
-  const totalBalance = debts.reduce((s, d) => s + d.balance, 0);
-  if (totalBalance <= 0) {
-    tbody.innerHTML = '';
-    tfoot.innerHTML = '';
-    debtFreeBanner.classList.add('visible');
-    return;
-  }
-  debtFreeBanner.classList.remove('visible');
 
   let anyCapWarning = false;
   let maxPayoffMonths = 0;
@@ -649,6 +637,10 @@ function refreshAll() {
   renderTable();
   updateSliderRanges();
   updateSliderDisplays();
+
+  const hasDebts = debts.length > 0 && debts.some(d => d.balance > 0);
+  $('section-sliders').style.display = hasDebts ? '' : 'none';
+  $('section-charts').style.display  = hasDebts ? '' : 'none';
 
   const { baseline, withExtra } = runAllSimulations();
   updateCallouts(baseline, withExtra);

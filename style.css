@@ -584,20 +584,6 @@ input[type="range"]:focus-visible {
 }
 .keeping-callout strong { color: var(--accent2); font-variant-numeric: tabular-nums; }
 
-/* ---- Debt-free state ---- */
-.debt-free-banner {
-  background: var(--accent-dim);
-  border: 2px solid var(--accent);
-  border-radius: var(--radius-lg);
-  padding: var(--gap-lg);
-  text-align: center;
-  display: none;
-}
-.debt-free-banner.visible { display: block; }
-.debt-free-banner .emoji { font-size: 2.5rem; }
-.debt-free-banner h2 { font-size: 1.5rem; color: var(--accent); margin: 0.4rem 0 0.2rem; }
-.debt-free-banner p { color: var(--text-muted); font-size: 0.9rem; }
-
 /* ---- Warning banner ---- */
 .cap-warning {
   background: var(--warn-dim);
