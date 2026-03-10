@@ -348,7 +348,7 @@ tbody td {
   gap: var(--gap-sm);
 }
 
-.empty-state .empty-icon { font-size: 3rem; }
+.empty-state .empty-icon { color: var(--border); }
 .empty-state p { font-size: 0.95rem; max-width: 28rem; }
 
 /* ---- Sliders section ---- */
@@ -593,8 +593,10 @@ input[type="range"]:focus-visible {
   padding: 0.6rem 1rem;
   font-size: 0.88rem;
   display: none;
+  align-items: center;
+  gap: 0.5rem;
 }
-.cap-warning.visible { display: block; }
+.cap-warning.visible { display: flex; }
 
 /* ---- Charts ---- */
 .charts-grid {
@@ -763,7 +765,7 @@ input[type="range"]:focus-visible {
 .mode-card:hover { border-color: var(--accent2); background: var(--surface3); }
 .mode-card:focus-visible { outline: 2px solid var(--accent2); outline-offset: 2px; }
 
-.mode-card-icon { font-size: 1.6rem; line-height: 1; flex-shrink: 0; }
+.mode-card-icon { line-height: 1; flex-shrink: 0; color: var(--accent2); display: flex; align-items: center; }
 .mode-card-text { display: flex; flex-direction: column; gap: 0.15rem; }
 .mode-card-title { font-weight: 600; font-size: 0.95rem; }
 .mode-card-sub   { font-size: 0.8rem; color: var(--text-muted); }
