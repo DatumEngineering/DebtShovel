@@ -2,7 +2,7 @@
 
 A fast, private, browser-native debt payoff calculator. No backend, no sign-up, no data ever leaves your browser.
 
-**[Live Demo →](https://your-username.github.io/debt_shovel/)**
+**[Live Demo →](https://datumengineering.github.io/DebtShovel/)**
 
 ## Features
 
