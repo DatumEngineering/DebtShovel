@@ -551,6 +551,16 @@
 
     </div><!-- .modal-body -->
 
+    <!-- Freed-payment allocation — shown only on step 2 -->
+    <div id="modal-alloc-section" class="modal-alloc-section" style="display:none">
+      <label for="modal-freed-alloc">When paid off, its minimum payment:</label>
+      <select id="modal-freed-alloc" aria-label="Freed payment allocation">
+        <option value="100">Roll it all forward → snowball</option>
+        <option value="50">Split — half forward, half mine</option>
+        <option value="0">Keep it all — don't snowball</option>
+      </select>
+    </div>
+
     <div class="modal-footer">
       <button class="btn btn-ghost" id="modal-cancel">Cancel</button>
       <button class="btn btn-primary" id="modal-confirm" style="display:none;">Add Debt</button>
