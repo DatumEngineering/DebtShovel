@@ -707,6 +707,9 @@ function showStep(stepId) {
       if (first) first.focus();
     }, 50);
   }
+  // Show alloc selector only on step-2 variants
+  const allocSection = $('modal-alloc-section');
+  if (allocSection) allocSection.style.display = stepId !== 'step-1' ? '' : 'none';
 }
 
 function resetModal() {
@@ -744,6 +747,10 @@ function resetModal() {
   setVal('p-calc-payment', '—');
 
   showEl('m-payment-warn', false);
+
+  // Reset freed-payment allocation
+  const allocEl = $('modal-freed-alloc');
+  if (allocEl) allocEl.value = '100';
 
   // Reset term unit
   const termYearsRadio = $('term-years');
@@ -801,6 +808,10 @@ function prefillModal(debt) {
     $('p-override-payment').value = debt.minPayment;
     updatePayoffDatePreview();
   }
+
+  // Pre-fill freed-payment allocation
+  const allocEl = $('modal-freed-alloc');
+  if (allocEl) allocEl.value = debt.freedAllocation ?? '100';
 }
 
 // ---------------------------------------------------------------------------
@@ -966,15 +977,17 @@ function validateAndConfirm() {
 
   if (!debt) return; // validation failed
 
+  const freedAllocation = $('modal-freed-alloc')?.value || '100';
+
   if (editingId !== null) {
     // Update existing
     const idx = debts.findIndex(d => d.id === editingId);
     if (idx !== -1) {
-      debts[idx] = { ...debt, id: editingId, freedAllocation: debts[idx].freedAllocation };
+      debts[idx] = { ...debt, id: editingId, freedAllocation };
     }
   } else {
     // Add new
-    debts.push({ ...debt, id: nextId++, freedAllocation: '100' });
+    debts.push({ ...debt, id: nextId++, freedAllocation });
   }
 
   closeModal();

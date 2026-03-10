@@ -755,6 +755,27 @@ input[type="range"]:focus-visible {
   flex-wrap: wrap;
 }
 
+/* ---- Modal freed-payment allocation section ---- */
+.modal-alloc-section {
+  padding: var(--gap) var(--gap-lg);
+  border-top: 1px solid var(--border);
+  background: var(--surface2);
+  display: flex;
+  align-items: center;
+  gap: var(--gap);
+  flex-wrap: wrap;
+}
+.modal-alloc-section label {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.modal-alloc-section select {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.85rem;
+}
+
 /* ---- Modal wizard steps ---- */
 .step { display: none; flex-direction: column; gap: var(--gap); }
 .step.active { display: flex; }
