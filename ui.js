@@ -351,18 +351,15 @@ function updateCallouts(baseline, withExtra) {
     setVal('accelerated-interest', '$0.00');
     setVal('combined-interest-saved', '$0.00');
     setVal('combined-months-saved', '—');
-    setVal('keeping-amount', '$0.00');
     return;
   }
 
   const interestSaved = Math.max(0, baseline.totalInterestPaid - withExtra.totalInterestPaid);
-  const monthsSaved   = Math.max(0, baseline.months - withExtra.months);
 
   setVal('baseline-interest',       fmtDollars(baseline.totalInterestPaid));
   setVal('accelerated-interest',    fmtDollars(withExtra.totalInterestPaid));
   setVal('combined-interest-saved', fmtDollars(interestSaved));
-  setVal('combined-months-saved',   monthsSaved > 0 ? fmtDuration(monthsSaved) : '—');
-  setVal('keeping-amount',          fmtDollars(withExtra.keptPerMonth));
+  setVal('combined-months-saved',   withExtra.months > 0 ? fmtDate(withExtra.months) : '—');
 }
 
 // ---------------------------------------------------------------------------

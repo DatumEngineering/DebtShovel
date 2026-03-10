@@ -65,7 +65,10 @@
   --warn-dim:      #78350f;
 }
 
-html { font-size: 16px; }
+html {
+  font-size: 16px;
+  overflow-x: hidden;
+}
 
 body {
   font-family: var(--font-sans);
@@ -73,6 +76,7 @@ body {
   color: var(--text);
   line-height: 1.55;
   min-height: 100vh;
+  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   transition: background 0.2s, color 0.2s;
 }
@@ -865,7 +869,8 @@ input[type="range"]:focus-visible {
   gap: var(--gap-sm);
 }
 .month-year-row select { flex: 2; }
-.month-year-row input[type="number"] { flex: 1; min-width: 80px; }
+.month-year-row input[type="number"],
+.month-year-row input[type="text"] { flex: 1; min-width: 80px; }
 
 /* Term toggle */
 .term-row {
