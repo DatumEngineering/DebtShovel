@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DebtShovel — Debt Payoff Calculator</title>
+  <meta name="description" content="Free, private browser-based debt payoff calculator with avalanche and snowball strategies, interactive sliders, and real-time charts." />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="stylesheet" href="style.css" />
+  <!-- Chart.js via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+  <script src="calculator.js" defer></script>
+  <script src="ui.js" defer></script>
+</head>
+<body>
+
+<!-- ===== Header ===== -->
+<header class="app-header" role="banner">
+  <div class="logo">
+    <!-- Clean shovel silhouette; hover reveals easter egg -->
+    <span title="No, dig UP, stupid!" aria-hidden="true">
+      <svg class="logo-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 46"
+           width="26" height="38" aria-hidden="true">
+        <!-- T-grip -->
+        <rect x="5" y="1" width="22" height="5" rx="2.5" fill="currentColor"/>
+        <!-- Shaft -->
+        <rect x="13" y="5" width="6" height="19" rx="3" fill="currentColor"/>
+        <!-- Blade (spade shape: curved top, pointed bottom) -->
+        <path d="M16,45 L4,27 Q16,19 28,27 Z" fill="currentColor"/>
+      </svg>
+    </span>
+    <div>
+      <h1>DebtShovel</h1>
+      <div class="tagline">Stop digging down. Dig <em>up</em>.</div>
+    </div>
+  </div>
+  <div class="header-actions">
+    <button class="btn-theme" id="btn-theme" aria-label="Toggle light/dark theme" title="Toggle theme">☀️</button>
+  </div>
+</header>
+
+<!-- ===== Main content ===== -->
+<main id="main-content">
+
+  <!-- === Debt Table Section === -->
+  <section id="section-debts" aria-labelledby="heading-debts">
+    <div class="section-header">
+      <h2 id="heading-debts">Your Debts</h2>
+      <button class="btn btn-accent" id="btn-add-debt" aria-label="Add a new debt">
+        + Add Debt
+      </button>
+    </div>
+
+    <!-- Debt table -->
+    <div class="table-wrap" role="region" aria-label="Debt entries">
+      <table id="debt-table" aria-label="Debt list">
+        <thead>
+          <tr>
+            <th scope="col">Account Name</th>
+            <th scope="col">Balance</th>
+            <th scope="col">Min. Payment</th>
+            <th scope="col">APR</th>
+            <th scope="col" title="When this debt is paid off, redirect that monthly payment toward remaining debts">Freed Payment ⓘ</th>
+            <th scope="col">Payoff Date <span class="sr-only">(minimum payments only)</span></th>
+            <th scope="col"><span class="sr-only">Actions</span></th>
+          </tr>
+        </thead>
+        <tbody id="debt-tbody">
+          <!-- Rows injected by ui.js -->
+        </tbody>
+        <tfoot id="debt-tfoot">
+          <!-- Totals row injected by ui.js -->
+        </tfoot>
+      </table>
+    </div>
+
+    <!-- Empty state (visible when no debts) -->
+    <div class="empty-state" id="empty-state" aria-live="polite">
+      <div class="empty-icon" aria-hidden="true">📋</div>
+      <strong>No debts added yet</strong>
+      <p>Click <em>+ Add Debt</em> to enter your first debt and start your payoff plan.</p>
+    </div>
+
+    <!-- Debt-free banner -->
+    <div class="debt-free-banner" id="debt-free-banner" role="status" aria-live="polite">
+      <div class="emoji">🎉</div>
+      <h2>Debt Free!</h2>
+      <p>You've entered $0 in remaining balances. There's nothing left to shovel!</p>
+    </div>
+
+    <!-- Simulation cap warning -->
+    <div class="cap-warning" id="cap-warning" role="alert">
+      ⚠️ One or more debts will take over 50 years to pay off at current minimums.
+      Consider increasing payments or the slider above.
+    </div>
+  </section>
+
+  <!-- === Sliders Section === -->
+  <section id="section-sliders" aria-labelledby="heading-sliders">
+    <h2 id="heading-sliders">Payoff Accelerators</h2>
+    <div class="sliders-grid">
+
+      <!-- Lump Sum Slider -->
+      <div class="slider-card" role="group" aria-labelledby="lump-sum-heading">
+        <h3 id="lump-sum-heading">
+          <strong>One-Time Lump Sum</strong>
+          If I had a windfall today…
+        </h3>
+
+        <div class="slider-row">
+          <label for="slider-lump" class="sr-only">Lump sum amount</label>
+          <input
+            type="range"
+            id="slider-lump"
+            min="0" max="1000" step="50" value="0"
+            aria-valuemin="0" aria-valuemax="1000" aria-valuenow="0"
+            aria-label="Lump sum windfall amount"
+          />
+          <div class="slider-number-wrap">
+            <span class="currency-prefix" aria-hidden="true">$</span>
+            <input type="number" id="lump-input" class="slider-number-input tabular"
+              min="0" step="50" value="0" aria-label="Lump sum amount (type or slide)" />
+          </div>
+        </div>
+        <div class="slider-range-note" id="lump-range-note">Max: total balance</div>
+
+        <div class="strategy-row">
+          <label for="lump-strategy">Apply using:</label>
+          <select id="lump-strategy" aria-label="Lump sum payoff strategy">
+            <option value="avalanche">Avalanche (highest APR first)</option>
+            <option value="snowball">Snowball (lowest balance first)</option>
+            <option value="highestPayment">Highest Monthly Payment first</option>
+            <option value="mostInterest">Most Interest/Month first</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Extra Monthly Slider -->
+      <div class="slider-card" role="group" aria-labelledby="extra-monthly-heading">
+        <h3 id="extra-monthly-heading">
+          <strong>Extra Monthly Payment</strong>
+          If I pay an extra $X/month…
+        </h3>
+
+        <div class="slider-row">
+          <label for="slider-extra" class="sr-only">Extra monthly payment amount</label>
+          <input
+            type="range"
+            id="slider-extra"
+            min="0" max="1000" step="25" value="0"
+            aria-valuemin="0" aria-valuemax="1000" aria-valuenow="0"
+            aria-label="Extra monthly payment amount"
+          />
+          <div class="slider-number-wrap">
+            <span class="currency-prefix" aria-hidden="true">$</span>
+            <input type="number" id="extra-input" class="slider-number-input tabular"
+              min="0" step="25" value="0" aria-label="Extra monthly amount (type or slide)" />
+          </div>
+        </div>
+        <div class="slider-range-note" id="extra-range-note">Max: 3× total minimum payments</div>
+
+        <div class="strategy-row">
+          <label for="extra-strategy">Apply using:</label>
+          <select id="extra-strategy" aria-label="Extra monthly payment payoff strategy">
+            <option value="avalanche">Avalanche (highest APR first)</option>
+            <option value="snowball">Snowball (lowest balance first)</option>
+            <option value="highestPayment">Highest Monthly Payment first</option>
+            <option value="mostInterest">Most Interest/Month first</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Combined savings callout — spans full width -->
+      <div class="combined-savings callout accent-border" id="combined-savings-callout" aria-live="polite">
+        <div class="callout-item">
+          <span class="label">Min-only interest</span>
+          <span class="value neutral" id="baseline-interest">$0.00</span>
+        </div>
+        <div class="callout-item">
+          <span class="label">Accelerated interest</span>
+          <span class="value neutral" id="accelerated-interest">$0.00</span>
+        </div>
+        <div class="callout-item">
+          <span class="label">Interest Saved</span>
+          <span class="value" id="combined-interest-saved">$0.00</span>
+        </div>
+        <div class="callout-item">
+          <span class="label">Paid Off Sooner</span>
+          <span class="value" id="combined-months-saved">—</span>
+        </div>
+        <div class="callout-item">
+          <span class="label">You're Keeping</span>
+          <span class="value" id="keeping-amount">$0.00</span><span class="label">/mo</span>
+        </div>
+      </div>
+
+    </div><!-- .sliders-grid -->
+  </section>
+
+  <!-- === Charts Section === -->
+  <section id="section-charts" aria-labelledby="heading-charts">
+    <h2 id="heading-charts">Payoff Visualizations</h2>
+    <div class="charts-grid">
+
+      <!-- Chart A: Total debt over time -->
+      <div class="chart-card">
+        <div class="chart-card-header">
+          <h3>
+            <strong>Total Debt Over Time</strong>
+            <span id="chart-a-subtitle">Baseline vs. with your accelerators</span>
+          </h3>
+          <div class="chart-controls">
+            <button class="btn btn-ghost btn-sm" id="chart-a-toggle" title="Switch between balance view and savings gap view">Show savings gap</button>
+          </div>
+        </div>
+        <div class="chart-note" id="chart-a-baseline-note"></div>
+        <div class="chart-wrap" id="chart-a-wrap">
+          <canvas id="chart-a" role="img" aria-label="Line chart showing total debt over time"></canvas>
+          <div class="chart-empty" id="chart-a-empty">Add a debt to see your payoff curve.</div>
+        </div>
+        <div class="sr-only" id="chart-a-summary" aria-live="polite"></div>
+      </div>
+
+      <!-- Chart B: Per-debt balances -->
+      <div class="chart-card">
+        <h3>
+          <strong>Balance Per Debt Over Time</strong>
+          Individual debt trajectories
+        </h3>
+        <div class="chart-wrap" id="chart-b-wrap">
+          <canvas id="chart-b" role="img" aria-label="Line chart showing individual debt balances over time"></canvas>
+          <div class="chart-empty" id="chart-b-empty">Add a debt to see individual trajectories.</div>
+        </div>
+        <div class="sr-only" id="chart-b-summary" aria-live="polite"></div>
+      </div>
+
+    </div><!-- .charts-grid -->
+  </section>
+
+</main>
+
+<!-- ===== Footer ===== -->
+<footer role="contentinfo">
+  <div class="footer-inner">
+    <p class="footer-disclaimer">
+      This calculator is provided for informational and educational purposes only. It does not
+      constitute financial advice. Results are estimates based on the data you enter and standard
+      amortization formulas; actual payoff timelines and interest savings may vary. The author is
+      not liable for any decisions made based on this tool's output.
+    </p>
+    <p class="footer-disclaimer">
+      This source code is free to use and reuse under the MIT License. If you reuse or adapt this
+      code, please retain attribution to the original project. Do not hold the author liable for
+      any failures, inaccuracies, or unintended consequences arising from use of this software.
+    </p>
+    <div class="footer-bottom">
+      <span>DebtShovel — MIT License</span>
+      <span>All calculations happen in your browser. No data is sent anywhere.</span>
+    </div>
+  </div>
+</footer>
+
+<!-- ===== Add/Edit Debt Modal ===== -->
+<div class="modal-backdrop hidden" id="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal" id="modal">
+
+    <div class="modal-header">
+      <h2 id="modal-title">Add Debt</h2>
+      <button class="btn-icon" id="modal-close" aria-label="Close modal">✕</button>
+    </div>
+
+    <div class="modal-body">
+
+      <!-- Step 1: Choose mode -->
+      <div class="step active" id="step-1" aria-label="Step 1: Choose entry mode">
+        <p style="font-size:0.88rem; color:var(--text-muted);">
+          How would you like to enter this debt?
+        </p>
+        <div class="mode-cards" role="list">
+
+          <button class="mode-card" id="mode-manual" data-mode="manual" role="listitem">
+            <div class="mode-card-icon" aria-hidden="true">✏️</div>
+            <div class="mode-card-text">
+              <div class="mode-card-title">I know my balance &amp; payment</div>
+              <div class="mode-card-sub">Enter balance, APR, and monthly payment directly</div>
+              <div class="mode-card-best">Best for: credit cards, personal loans</div>
+            </div>
+          </button>
+
+          <button class="mode-card" id="mode-amortizing" data-mode="amortizing" role="listitem">
+            <div class="mode-card-icon" aria-hidden="true">🏠</div>
+            <div class="mode-card-text">
+              <div class="mode-card-title">I know my original loan details</div>
+              <div class="mode-card-sub">Enter original balance, start date, term &amp; APR — we calculate the rest</div>
+              <div class="mode-card-best">Best for: mortgages, auto loans, student loans</div>
+            </div>
+          </button>
+
+          <button class="mode-card" id="mode-payoff-date" data-mode="payoffDate" role="listitem">
+            <div class="mode-card-icon" aria-hidden="true">📅</div>
+            <div class="mode-card-text">
+              <div class="mode-card-title">I know when it'll be paid off</div>
+              <div class="mode-card-sub">Enter balance, APR, and target date — we calculate your required payment</div>
+              <div class="mode-card-best">Best for: any loan with a known payoff date</div>
+            </div>
+          </button>
+
+        </div>
+      </div>
+
+      <!-- Step 2a: Manual -->
+      <div class="step" id="step-2a" aria-label="Step 2: Manual entry">
+        <button class="back-link" id="back-from-manual" aria-label="Back to mode selection">← Back</button>
+
+        <div class="field-group">
+          <label for="m-name">Account Name</label>
+          <input type="text" id="m-name" placeholder="e.g. Chase Visa" autocomplete="off" />
+          <span class="field-error" id="m-name-err" role="alert"></span>
+        </div>
+
+        <div class="field-row">
+          <div class="field-group">
+            <label for="m-balance">Current Balance ($)</label>
+            <input type="number" id="m-balance" placeholder="5000" min="0" step="0.01" />
+            <span class="field-error" id="m-balance-err" role="alert"></span>
+          </div>
+          <div class="field-group">
+            <label for="m-apr">APR (%)</label>
+            <input type="number" id="m-apr" placeholder="19.99" min="0" max="100" step="0.01" />
+            <span class="field-error" id="m-apr-err" role="alert"></span>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label for="m-payment">Monthly Payment ($)</label>
+          <input type="number" id="m-payment" placeholder="150" min="0" step="0.01" />
+          <span class="field-error" id="m-payment-err" role="alert"></span>
+        </div>
+
+        <div class="field-group escrow-row">
+          <label for="m-escrow">Escrow (taxes + insurance, optional) ($)</label>
+          <input type="number" id="m-escrow" placeholder="0" min="0" step="0.01" />
+          <span class="field-helper">Only the principal &amp; interest portion is used — escrow doesn't reduce your balance.</span>
+        </div>
+
+        <div class="payoff-preview" aria-live="polite">
+          <span class="preview-label">Nominal payoff date (min. payments):</span>
+          <span class="preview-val" id="m-payoff-preview">—</span>
+        </div>
+
+        <div class="warn-badge" id="m-payment-warn" style="display:none;" role="alert">
+          ⚠️ Payment doesn't cover interest — debt will never pay off
+        </div>
+      </div>
+
+      <!-- Step 2b: Amortizing Loan -->
+      <div class="step" id="step-2b" aria-label="Step 2: Amortizing loan entry">
+        <button class="back-link" id="back-from-amortizing" aria-label="Back to mode selection">← Back</button>
+
+        <div class="field-group">
+          <label for="a-name">Account Name</label>
+          <input type="text" id="a-name" placeholder="e.g. Home Mortgage" autocomplete="off" />
+          <span class="field-error" id="a-name-err" role="alert"></span>
+        </div>
+
+        <div class="field-row">
+          <div class="field-group">
+            <label for="a-orig-balance">Original Loan Balance ($)</label>
+            <input type="number" id="a-orig-balance" placeholder="250000" min="0" step="0.01" />
+            <span class="field-error" id="a-orig-balance-err" role="alert"></span>
+          </div>
+          <div class="field-group">
+            <label for="a-apr">APR (%)</label>
+            <input type="number" id="a-apr" placeholder="6.5" min="0" max="100" step="0.01" />
+            <span class="field-error" id="a-apr-err" role="alert"></span>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field-group">
+            <label>Loan Start Date</label>
+            <div class="month-year-row">
+              <select id="a-start-month" aria-label="Start month">
+                <option value="">Month</option>
+                <option value="1">January</option><option value="2">February</option>
+                <option value="3">March</option><option value="4">April</option>
+                <option value="5">May</option><option value="6">June</option>
+                <option value="7">July</option><option value="8">August</option>
+                <option value="9">September</option><option value="10">October</option>
+                <option value="11">November</option><option value="12">December</option>
+              </select>
+              <input type="number" id="a-start-year" placeholder="Year" min="1900" max="2100" step="1" aria-label="Start year" />
+            </div>
+            <span class="field-error" id="a-start-date-err" role="alert"></span>
+          </div>
+          <div class="field-group">
+            <label>Loan Term</label>
+            <div class="term-row">
+              <input type="number" id="a-term" placeholder="e.g. 30" min="1" step="1" style="flex:1;" />
+              <div class="term-toggle" role="group" aria-label="Term unit">
+                <input type="radio" name="term-unit" id="term-years" value="years" checked />
+                <label for="term-years">Yrs</label>
+                <input type="radio" name="term-unit" id="term-months-radio" value="months" />
+                <label for="term-months-radio">Mo</label>
+              </div>
+            </div>
+            <span class="field-error" id="a-term-err" role="alert"></span>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label for="a-escrow">Escrow / Extra in Payment (optional) ($)</label>
+          <input type="number" id="a-escrow" placeholder="0" min="0" step="0.01" />
+          <span class="field-helper">Only the principal &amp; interest portion is used — escrow doesn't reduce your balance.</span>
+        </div>
+
+        <!-- Auto-calculated preview -->
+        <div class="calc-preview" id="a-calc-preview" aria-live="polite">
+          <span class="calc-preview-label">Auto-calculated (edit before confirming)</span>
+          <div class="calc-preview-row">
+            <span>Monthly P&amp;I payment</span>
+            <span class="calc-preview-val" id="a-calc-payment">—</span>
+          </div>
+          <div class="calc-preview-row" id="a-total-payment-row" style="display:none">
+            <span>Total monthly cost (P&amp;I + escrow)</span>
+            <span class="calc-preview-val" id="a-calc-total-payment">—</span>
+          </div>
+          <div class="calc-preview-row">
+            <span>Current remaining balance</span>
+            <span class="calc-preview-val" id="a-calc-balance">—</span>
+          </div>
+          <div class="calc-preview-row">
+            <span>Remaining term</span>
+            <span class="calc-preview-val" id="a-calc-remaining">—</span>
+          </div>
+        </div>
+        <div class="callout-note escrow-note" id="a-escrow-persist-note" style="display:none">
+          ⚠️ Escrow (taxes &amp; insurance) continues after the mortgage is paid off — budget for it separately.
+        </div>
+
+        <div class="callout-note">
+          Verify these match your latest statement — early payoff, missed payments, or rate changes won't be reflected.
+        </div>
+
+        <!-- Override fields -->
+        <div class="field-row">
+          <div class="field-group">
+            <label for="a-override-balance">Override Balance ($, optional)</label>
+            <input type="number" id="a-override-balance" placeholder="Use calculated" min="0" step="0.01" />
+          </div>
+          <div class="field-group">
+            <label for="a-override-payment">Override Payment ($, optional)</label>
+            <input type="number" id="a-override-payment" placeholder="Use calculated" min="0" step="0.01" />
+          </div>
+        </div>
+
+        <div class="payoff-preview" aria-live="polite">
+          <span class="preview-label">Nominal payoff date (min. payments):</span>
+          <span class="preview-val" id="a-payoff-preview">—</span>
+        </div>
+      </div>
+
+      <!-- Step 2c: Payoff Date -->
+      <div class="step" id="step-2c" aria-label="Step 2: Payoff date entry">
+        <button class="back-link" id="back-from-payoff" aria-label="Back to mode selection">← Back</button>
+
+        <div class="field-group">
+          <label for="p-name">Account Name</label>
+          <input type="text" id="p-name" placeholder="e.g. Student Loan" autocomplete="off" />
+          <span class="field-error" id="p-name-err" role="alert"></span>
+        </div>
+
+        <div class="field-row">
+          <div class="field-group">
+            <label for="p-balance">Current Balance ($)</label>
+            <input type="number" id="p-balance" placeholder="12000" min="0" step="0.01" />
+            <span class="field-error" id="p-balance-err" role="alert"></span>
+          </div>
+          <div class="field-group">
+            <label for="p-apr">APR (%)</label>
+            <input type="number" id="p-apr" placeholder="5.5" min="0" max="100" step="0.01" />
+            <span class="field-error" id="p-apr-err" role="alert"></span>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label>Target Payoff Date</label>
+          <div class="month-year-row">
+            <select id="p-target-month" aria-label="Target payoff month">
+              <option value="">Month</option>
+              <option value="1">January</option><option value="2">February</option>
+              <option value="3">March</option><option value="4">April</option>
+              <option value="5">May</option><option value="6">June</option>
+              <option value="7">July</option><option value="8">August</option>
+              <option value="9">September</option><option value="10">October</option>
+              <option value="11">November</option><option value="12">December</option>
+            </select>
+            <input type="number" id="p-target-year" placeholder="Year" min="2024" max="2100" step="1" aria-label="Target payoff year" />
+          </div>
+          <span class="field-error" id="p-target-date-err" role="alert"></span>
+        </div>
+
+        <!-- Calculated payment preview -->
+        <div class="calc-preview" id="p-calc-preview" aria-live="polite">
+          <span class="calc-preview-label">Auto-calculated required payment</span>
+          <div class="calc-preview-row">
+            <span>Required monthly payment</span>
+            <span class="calc-preview-val" id="p-calc-payment">—</span>
+          </div>
+        </div>
+
+        <div class="field-group">
+          <label for="p-override-payment">Override Payment ($, optional)</label>
+          <input type="number" id="p-override-payment" placeholder="Use calculated" min="0" step="0.01" />
+        </div>
+
+        <div class="payoff-preview" aria-live="polite">
+          <span class="preview-label">Required payment:</span>
+          <span class="preview-val" id="p-payoff-preview">—</span>
+        </div>
+      </div>
+
+    </div><!-- .modal-body -->
+
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="modal-cancel">Cancel</button>
+      <button class="btn btn-primary" id="modal-confirm" style="display:none;">Add Debt</button>
+    </div>
+
+  </div><!-- .modal -->
+</div><!-- .modal-backdrop -->
+
+</body>
+</html>

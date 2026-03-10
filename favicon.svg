@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- T-grip handle top -->
+  <rect x="8" y="2" width="16" height="4" rx="2" fill="#1565c0"/>
+  <!-- Handle shaft -->
+  <rect x="14" y="5" width="4" height="13" rx="2" fill="#1565c0"/>
+  <!-- Blade (spade shape) -->
+  <path d="M6,16 H26 L16,30 Z" fill="#1565c0"/>
+  <!-- Round top of blade -->
+  <ellipse cx="16" cy="16" rx="10" ry="3" fill="#1565c0"/>
+</svg>
