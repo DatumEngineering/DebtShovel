@@ -345,6 +345,40 @@ function runBaselineSimulation(debts) {
 }
 
 /**
+ * Compute the 25th/50th/75th percentile annualized CAGR over a given horizon,
+ * given an arithmetic mean and annual standard deviation of returns.
+ *
+ * The geometric mean (center of the CAGR distribution) is:
+ *   μ_geo = μ_arith − σ²/2   (Jensen's inequality on log-normal returns)
+ *
+ * The standard deviation of the CAGR narrows with the horizon as:
+ *   σ_cagr = σ / √N   (CLT — annualized variance is σ²/N)
+ *
+ * Percentiles use z = ±0.6745 (25th/75th of a standard normal), which becomes
+ * increasingly accurate as N grows due to the CLT.
+ *
+ * @param {number} meanPct      - Arithmetic mean annual return, in percent (e.g. 10.5)
+ * @param {number} sigmaPct     - Annual std dev of returns, in percent (e.g. 16)
+ * @param {number} horizonYears - Investment horizon in years (≥ 1)
+ * @returns {{ p25: number, p50: number, p75: number }} Percentile CAGRs in percent
+ */
+function computePercentileRates(meanPct, sigmaPct, horizonYears) {
+  const mu    = meanPct  / 100;
+  const sigma = sigmaPct / 100;
+  const n     = Math.max(1, horizonYears);
+
+  const muGeo     = (mu - (sigma * sigma) / 2) * 100; // geometric mean, %
+  const sigmaCAGR = (sigma / Math.sqrt(n))      * 100; // CAGR std dev at horizon, %
+  const z = 0.6745; // z-score for 25th/75th percentile of standard normal
+
+  return {
+    p25: muGeo - z * sigmaCAGR,
+    p50: muGeo,
+    p75: muGeo + z * sigmaCAGR,
+  };
+}
+
+/**
  * Scenario A: Pay debt aggressively (per current plan), then invest everything after payoff.
  * While any debt remains, all extra cash attacks debt. After the last debt clears,
  * extraMonthly + sum(all original minPayments) is invested each month.
@@ -499,6 +533,7 @@ const Calculator = {
   sortByStrategy,
   runSimulation,
   runBaselineSimulation,
+  computePercentileRates,
   runPayDebtThenInvest,
   runInvestInstead,
   calcNominalPayoffMonths,

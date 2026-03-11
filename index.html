@@ -295,38 +295,30 @@
             </div>
           </div>
 
-          <!-- Pre-tax return rates -->
+          <!-- Return distribution parameters -->
           <div class="compare-control-group compare-rates" role="group" aria-labelledby="rates-label">
-            <span id="rates-label" class="control-label">Pre-tax annual return (invest instead)</span>
+            <span id="rates-label" class="control-label">Equity return assumption (pre-tax)</span>
             <div class="rate-inputs">
-              <label class="rate-input-wrap rate-pessimistic">
-                <span class="rate-band-label">Pessimistic</span>
+              <label class="rate-input-wrap">
+                <span class="rate-band-label">Mean return (μ)</span>
                 <div class="slider-number-wrap">
-                  <input type="number" id="rate-low" class="slider-number-input tabular"
-                         min="0" max="30" step="0.5" value="7"
-                         aria-label="Pessimistic pre-tax annual return %" />
-                  <span class="input-suffix" aria-hidden="true">%</span>
-                </div>
-              </label>
-              <label class="rate-input-wrap rate-median">
-                <span class="rate-band-label">Median</span>
-                <div class="slider-number-wrap">
-                  <input type="number" id="rate-mid" class="slider-number-input tabular"
+                  <input type="number" id="compare-mean" class="slider-number-input tabular"
                          min="0" max="30" step="0.5" value="10.5"
-                         aria-label="Median pre-tax annual return %" />
+                         aria-label="Mean annual equity return %" />
                   <span class="input-suffix" aria-hidden="true">%</span>
                 </div>
               </label>
-              <label class="rate-input-wrap rate-optimistic">
-                <span class="rate-band-label">Optimistic</span>
+              <label class="rate-input-wrap">
+                <span class="rate-band-label">Volatility (σ)</span>
                 <div class="slider-number-wrap">
-                  <input type="number" id="rate-high" class="slider-number-input tabular"
-                         min="0" max="30" step="0.5" value="14"
-                         aria-label="Optimistic pre-tax annual return %" />
+                  <input type="number" id="compare-vol" class="slider-number-input tabular"
+                         min="0" max="50" step="0.5" value="16"
+                         aria-label="Annual return standard deviation %" />
                   <span class="input-suffix" aria-hidden="true">%</span>
                 </div>
               </label>
             </div>
+            <p class="computed-rates-display" id="computed-rates-display" aria-live="polite"></p>
           </div>
 
           <!-- Tax on gains -->

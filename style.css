@@ -1297,6 +1297,15 @@ details[open] .compare-chevron { transform: rotate(180deg); }
 .rate-median    .rate-band-label { color: var(--accent2); }
 .rate-optimistic .rate-band-label { color: var(--warn); }
 
+/* Computed percentile rates (updates live as horizon or μ/σ changes) */
+.computed-rates-display {
+  margin: var(--gap-sm) 0 0;
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  font-style: italic;
+}
+
 /* % suffix — flex sibling inside .slider-number-wrap */
 .input-suffix {
   color: var(--text-muted);

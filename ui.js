@@ -697,34 +697,39 @@ function updateCompareChart() {
   const lumpStrategy  = $('lump-strategy')?.value  || 'avalanche';
   const extraStrategy = $('extra-strategy')?.value || 'avalanche';
 
-  const pretaxLow  = parseFloat($('rate-low')?.value)  || 7;
-  const pretaxMid  = parseFloat($('rate-mid')?.value)  || 10.5;
-  const pretaxHigh = parseFloat($('rate-high')?.value) || 14;
-  const taxRate    = getCompareTaxRate();
+  const mu      = parseFloat($('compare-mean')?.value) || 10.5;
+  const sigma   = parseFloat($('compare-vol')?.value)  || 16;
+  const taxRate = getCompareTaxRate();
+  const horizonYears = horizonMonths / 12;
 
-  const effLow  = +(pretaxLow  * (1 - taxRate)).toFixed(2);
-  const effMid  = +(pretaxMid  * (1 - taxRate)).toFixed(2);
-  const effHigh = +(pretaxHigh * (1 - taxRate)).toFixed(2);
+  // Percentile CAGR bands narrow with horizon: σ_cagr = σ/√N, center = μ − σ²/2
+  const { p25, p50, p75 } = Calculator.computePercentileRates(mu, sigma, horizonYears);
+
+  const effLow  = +(p25 * (1 - taxRate)).toFixed(2);
+  const effMid  = +(p50 * (1 - taxRate)).toFixed(2);
+  const effHigh = +(p75 * (1 - taxRate)).toFixed(2);
+
+  // Show computed pre-tax percentile rates — updates live as horizon changes
+  const taxLabel = taxRate === 0 ? 'tax-advantaged' : `${(taxRate * 100).toFixed(0)}% cap gains`;
+  setVal('computed-rates-display',
+    `At ${horizonYears} yr — 25th: ${p25.toFixed(1)}%, Median: ${p50.toFixed(1)}%, 75th: ${p75.toFixed(1)}% pre-tax` +
+    ` → ${effLow.toFixed(1)}% / ${effMid.toFixed(1)}% / ${effHigh.toFixed(1)}% after tax (${taxLabel})`
+  );
 
   // Update labels in callout
   setVal('compare-low-pct-label',  effLow.toFixed(1));
   setVal('compare-mid-pct-label',  effMid.toFixed(1));
   setVal('compare-high-pct-label', effHigh.toFixed(1));
 
-  const taxLabel = taxRate === 0
-    ? 'tax-advantaged'
-    : `${(taxRate * 100).toFixed(0)}% cap gains`;
-  setVal('compare-effective-rates',
-    `After-tax returns (${taxLabel}): ${effLow.toFixed(1)}% / ${effMid.toFixed(1)}% / ${effHigh.toFixed(1)}%`
-  );
+  setVal('compare-effective-rates', ''); // replaced by computed-rates-display
 
   // Run scenarios
   const payDebt   = Calculator.runPayDebtThenInvest(
-    debts, extraMonthly, lumpSum, extraStrategy, lumpStrategy, pretaxMid, taxRate, horizonMonths
+    debts, extraMonthly, lumpSum, extraStrategy, lumpStrategy, p50, taxRate, horizonMonths
   );
-  const investLow  = Calculator.runInvestInstead(debts, extraMonthly, lumpSum, pretaxLow,  taxRate, horizonMonths);
-  const investMid  = Calculator.runInvestInstead(debts, extraMonthly, lumpSum, pretaxMid,  taxRate, horizonMonths);
-  const investHigh = Calculator.runInvestInstead(debts, extraMonthly, lumpSum, pretaxHigh, taxRate, horizonMonths);
+  const investLow  = Calculator.runInvestInstead(debts, extraMonthly, lumpSum, p25, taxRate, horizonMonths);
+  const investMid  = Calculator.runInvestInstead(debts, extraMonthly, lumpSum, p50, taxRate, horizonMonths);
+  const investHigh = Calculator.runInvestInstead(debts, extraMonthly, lumpSum, p75, taxRate, horizonMonths);
 
   // Summary callout
   setVal('compare-paydebt-val', fmtDollars(payDebt.netWorthByMonth[horizonMonths]));
@@ -1309,9 +1314,8 @@ function saveToStorage() {
       chartAMode,
       compareOpen:          $('compare-details')?.open || false,
       compareHorizonYears:  parseInt(document.querySelector('#horizon-picker .seg-btn.active')?.dataset.years || 30),
-      compareRateLow:       parseFloat($('rate-low')?.value  || 7),
-      compareRateMid:       parseFloat($('rate-mid')?.value  || 10.5),
-      compareRateHigh:      parseFloat($('rate-high')?.value || 14),
+      compareMean:          parseFloat($('compare-mean')?.value || 10.5),
+      compareVol:           parseFloat($('compare-vol')?.value  || 16),
       compareTaxRate:       parseFloat($('compare-tax-rate')?.value || 15),
       compareTaxAdvantaged: $('compare-tax-advantaged')?.checked || false,
     };
@@ -1409,10 +1413,9 @@ function loadFromStorage() {
       }
     }
 
-    // Compare: rate inputs
-    if (ui.compareRateLow  != null) { const el = $('rate-low');          if (el) el.value = ui.compareRateLow;  }
-    if (ui.compareRateMid  != null) { const el = $('rate-mid');          if (el) el.value = ui.compareRateMid;  }
-    if (ui.compareRateHigh != null) { const el = $('rate-high');         if (el) el.value = ui.compareRateHigh; }
+    // Compare: distribution parameters
+    if (ui.compareMean != null) { const el = $('compare-mean'); if (el) el.value = ui.compareMean; }
+    if (ui.compareVol  != null) { const el = $('compare-vol');  if (el) el.value = ui.compareVol;  }
     if (ui.compareTaxRate  != null) { const el = $('compare-tax-rate');  if (el) el.value = ui.compareTaxRate;  }
 
     // Compare: tax-advantaged checkbox
@@ -1659,8 +1662,8 @@ function wireEvents() {
     });
   });
 
-  // Compare section: rate inputs and tax rate
-  ['rate-low', 'rate-mid', 'rate-high', 'compare-tax-rate'].forEach(id => {
+  // Compare section: distribution parameters and tax rate
+  ['compare-mean', 'compare-vol', 'compare-tax-rate'].forEach(id => {
     $(id)?.addEventListener('input', updateCompareChart);
   });
 
