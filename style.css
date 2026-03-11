@@ -1167,3 +1167,186 @@ footer {
 input[type=number]::-webkit-inner-spin-button,
 input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
 input[type=number] { -moz-appearance: textfield; }
+
+/* ============================================================
+   Debt vs. Investing — collapsible compare section
+   ============================================================ */
+
+#section-compare {
+  margin-top: var(--gap);
+}
+
+#section-compare details {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+/* Summary / toggle row */
+.compare-toggle {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--gap);
+  cursor: pointer;
+  user-select: none;
+  gap: var(--gap);
+}
+.compare-toggle::-webkit-details-marker { display: none; }
+
+.compare-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+  transition: color 0.15s;
+}
+.compare-toggle:hover .compare-toggle-label { color: var(--accent); }
+
+.compare-toggle-hint {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.compare-chevron {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  transition: transform 0.2s ease;
+}
+details[open] .compare-chevron { transform: rotate(180deg); }
+
+/* Expanded body */
+.compare-body {
+  padding: 0 var(--gap) var(--gap);
+  border-top: 1px solid var(--border);
+}
+
+/* Controls row */
+.compare-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gap-lg, 1.5rem) var(--gap);
+  align-items: flex-start;
+  margin: var(--gap) 0;
+}
+
+.compare-control-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-sm);
+}
+
+.control-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+/* Segmented horizon picker */
+.segmented-control {
+  display: inline-flex;
+  gap: 2px;
+  background: var(--surface2);
+  border-radius: var(--radius);
+  padding: 3px;
+}
+.seg-btn {
+  padding: 0.3rem 0.8rem;
+  border-radius: calc(var(--radius) - 2px);
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.seg-btn.active {
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+.seg-btn:hover:not(.active) { color: var(--text); }
+
+/* Return rate inputs */
+.rate-inputs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--gap);
+}
+.rate-input-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.8rem;
+}
+.rate-input-wrap .slider-number-wrap {
+  width: 6rem;
+}
+.rate-band-label {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+/* Color-code the band labels */
+.rate-median    .rate-band-label { color: var(--accent2); }
+.rate-optimistic .rate-band-label { color: var(--warn); }
+
+/* % suffix — flex sibling inside .slider-number-wrap */
+.input-suffix {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+/* Tax rate controls */
+.tax-rate-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-sm);
+}
+.tax-toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.tax-toggle-label input[type=checkbox] {
+  accent-color: var(--accent);
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+}
+
+/* Chart subtitle (effective rates) */
+.chart-subtitle {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* Compare summary callout — same grid as main callout */
+.compare-summary {
+  margin-top: var(--gap);
+}
+
+/* Disclaimer */
+.compare-disclaimer {
+  margin-top: var(--gap-sm);
+  font-size: 0.73rem;
+  color: var(--text-muted);
+  font-style: italic;
+  line-height: 1.5;
+}
+
+@media (max-width: 600px) {
+  .compare-controls { flex-direction: column; }
+  .rate-inputs      { flex-direction: column; }
+  .compare-toggle-hint { display: none; }
+}

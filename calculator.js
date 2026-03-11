@@ -345,6 +345,100 @@ function runBaselineSimulation(debts) {
 }
 
 /**
+ * Scenario A: Pay debt aggressively (per current plan), then invest everything after payoff.
+ * While any debt remains, all extra cash attacks debt. After the last debt clears,
+ * extraMonthly + sum(all original minPayments) is invested each month.
+ *
+ * @param {object[]} debts
+ * @param {number}   extraMonthly      - Extra monthly slider value
+ * @param {number}   lumpSum           - Lump sum slider value
+ * @param {string}   monthlyStrategy   - Strategy for monthly extra payments
+ * @param {string}   lumpSumStrategy   - Strategy for lump sum
+ * @param {number}   annualReturnRate  - Pre-tax annual return percent (e.g. 10.5)
+ * @param {number}   taxRate           - Decimal tax rate on gains (e.g. 0.15); 0 for tax-advantaged
+ * @param {number}   horizonMonths     - Total months to project
+ * @returns {{ netWorthByMonth: number[], portfolioByMonth: number[], debtByMonth: number[] }}
+ */
+function runPayDebtThenInvest(debts, extraMonthly, lumpSum, monthlyStrategy, lumpSumStrategy, annualReturnRate, taxRate, horizonMonths) {
+  const sim = runSimulation(debts, extraMonthly, lumpSum, monthlyStrategy, lumpSumStrategy, '100');
+  const effectiveRate = annualReturnRate * (1 - taxRate) / 100 / 12;
+  const totalMinPayments = debts.reduce((s, d) => s + d.minPayment, 0);
+  const monthlyContrib = extraMonthly + totalMinPayments;
+  const payoffMonth = sim.months;
+
+  const netWorthByMonth = [], portfolioByMonth = [], debtByMonth = [];
+  let portfolio = 0;
+
+  for (let t = 0; t <= horizonMonths; t++) {
+    // sim.monthlyTotals[t]: index 0 = original balance (pre-lump-sum);
+    // index 1+ = post-lump-sum + month-t payments
+    const debt = t <= payoffMonth ? (sim.monthlyTotals[t] ?? 0) : 0;
+
+    if (t > payoffMonth) {
+      portfolio = portfolio * (1 + effectiveRate) + monthlyContrib;
+    }
+
+    debtByMonth.push(debt);
+    portfolioByMonth.push(portfolio);
+    netWorthByMonth.push(portfolio - debt);
+  }
+  return { netWorthByMonth, portfolioByMonth, debtByMonth };
+}
+
+/**
+ * Scenario B: Pay minimums only on debt; invest extraMonthly + lump sum from day one.
+ * Uses a true minimum-only simulation (allocation '0') so freed minimums do NOT cascade
+ * to other debts — they go to the investment portfolio instead.
+ *
+ * @param {object[]} debts
+ * @param {number}   extraMonthly      - Extra monthly slider value (invested each month)
+ * @param {number}   lumpSum           - Lump sum slider value (invested at month 0)
+ * @param {number}   annualReturnRate  - Pre-tax annual return percent
+ * @param {number}   taxRate           - Decimal tax rate on gains; 0 for tax-advantaged
+ * @param {number}   horizonMonths     - Total months to project
+ * @returns {{ netWorthByMonth: number[], portfolioByMonth: number[], debtByMonth: number[] }}
+ */
+function runInvestInstead(debts, extraMonthly, lumpSum, annualReturnRate, taxRate, horizonMonths) {
+  // allocation '0' prevents freed minimums from cascading to other debts
+  const minSim = runSimulation(debts, 0, 0, 'avalanche', 'avalanche', '0');
+  const effectiveRate = annualReturnRate * (1 - taxRate) / 100 / 12;
+
+  // Determine when each debt pays off in the true min-only simulation
+  const paidOffAt = {};
+  for (const [id, history] of Object.entries(minSim.debtHistory)) {
+    const idx = history.findIndex((bal, i) => i > 0 && bal <= 0);
+    paidOffAt[id] = idx === -1 ? Infinity : idx;
+  }
+  const minPayById = {};
+  debts.forEach(d => { minPayById[d.id] = d.minPayment; });
+
+  const netWorthByMonth = [], portfolioByMonth = [], debtByMonth = [];
+
+  // Month 0: invest lump sum immediately
+  let portfolio = lumpSum;
+  const debt0 = minSim.monthlyTotals[0] ?? 0;
+  debtByMonth.push(debt0);
+  portfolioByMonth.push(portfolio);
+  netWorthByMonth.push(portfolio - debt0);
+
+  for (let t = 1; t <= horizonMonths; t++) {
+    // Contribution = extraMonthly + freed minimums from debts paid off before month t
+    let contribution = extraMonthly;
+    for (const [id, paidOff] of Object.entries(paidOffAt)) {
+      if (paidOff < t) contribution += minPayById[id] ?? 0;
+    }
+
+    portfolio = portfolio * (1 + effectiveRate) + contribution;
+    const debt = t <= minSim.months ? (minSim.monthlyTotals[t] ?? 0) : 0;
+
+    debtByMonth.push(debt);
+    portfolioByMonth.push(portfolio);
+    netWorthByMonth.push(portfolio - debt);
+  }
+  return { netWorthByMonth, portfolioByMonth, debtByMonth };
+}
+
+/**
  * Format a month offset as a human-readable "MMM YYYY" date string.
  * @param {number} monthsFromNow - Number of months in the future
  * @param {Date}   [baseDate]    - Base date (defaults to today)
@@ -405,6 +499,8 @@ const Calculator = {
   sortByStrategy,
   runSimulation,
   runBaselineSimulation,
+  runPayDebtThenInvest,
+  runInvestInstead,
   calcNominalPayoffMonths,
   formatPayoffDate,
   formatDuration,
