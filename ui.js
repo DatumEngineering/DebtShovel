@@ -19,6 +19,7 @@ let nextId = 1;
 /** Chart instances */
 let chartA = null;
 let chartB = null;
+let chartC = null;
 
 /** Chart A display mode: 'balances' | 'gap' */
 let chartAMode = 'balances';
@@ -647,18 +648,170 @@ function updateCharts(baseline, withExtra) {
 // Main refresh (called on any state change)
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Debt vs. Investing comparison (Chart C)
+// ---------------------------------------------------------------------------
+
+function getCompareHorizonMonths() {
+  const active = document.querySelector('#horizon-picker .seg-btn.active');
+  return active ? parseInt(active.dataset.years, 10) * 12 : 360;
+}
+
+function getCompareTaxRate() {
+  if ($('compare-tax-advantaged')?.checked) return 0;
+  return (parseFloat($('compare-tax-rate')?.value) || 15) / 100;
+}
+
+function updateCompareChart() {
+  const details = $('compare-details');
+  if (!details?.open) return; // lazy: skip if section is collapsed
+
+  const hasDebts = debts.length > 0 && debts.some(d => d.balance > 0);
+  const emptyC  = $('chart-c-empty');
+  const canvasC = $('chart-c');
+  if (emptyC)  emptyC.style.display  = hasDebts ? 'none' : '';
+  if (canvasC) canvasC.style.display = hasDebts ? '' : 'none';
+
+  if (!hasDebts) {
+    if (chartC) { chartC.destroy(); chartC = null; }
+    ['compare-paydebt-val','compare-low-val','compare-mid-val','compare-high-val']
+      .forEach(id => setVal(id, '—'));
+    return;
+  }
+
+  const horizonMonths = getCompareHorizonMonths();
+  const lumpSum       = parseFloat($('slider-lump')?.value  || 0);
+  const extraMonthly  = parseFloat($('slider-extra')?.value || 0);
+  const lumpStrategy  = $('lump-strategy')?.value  || 'avalanche';
+  const extraStrategy = $('extra-strategy')?.value || 'avalanche';
+
+  const pretaxLow  = parseFloat($('rate-low')?.value)  || 7;
+  const pretaxMid  = parseFloat($('rate-mid')?.value)  || 10.5;
+  const pretaxHigh = parseFloat($('rate-high')?.value) || 14;
+  const taxRate    = getCompareTaxRate();
+
+  const effLow  = +(pretaxLow  * (1 - taxRate)).toFixed(2);
+  const effMid  = +(pretaxMid  * (1 - taxRate)).toFixed(2);
+  const effHigh = +(pretaxHigh * (1 - taxRate)).toFixed(2);
+
+  // Update labels in callout
+  setVal('compare-low-pct-label',  effLow.toFixed(1));
+  setVal('compare-mid-pct-label',  effMid.toFixed(1));
+  setVal('compare-high-pct-label', effHigh.toFixed(1));
+
+  const taxLabel = taxRate === 0
+    ? 'tax-advantaged'
+    : `${(taxRate * 100).toFixed(0)}% cap gains`;
+  setVal('compare-effective-rates',
+    `After-tax returns (${taxLabel}): ${effLow.toFixed(1)}% / ${effMid.toFixed(1)}% / ${effHigh.toFixed(1)}%`
+  );
+
+  // Run scenarios
+  const payDebt   = Calculator.runPayDebtThenInvest(
+    debts, extraMonthly, lumpSum, extraStrategy, lumpStrategy, pretaxMid, taxRate, horizonMonths
+  );
+  const investLow  = Calculator.runInvestInstead(debts, extraMonthly, lumpSum, pretaxLow,  taxRate, horizonMonths);
+  const investMid  = Calculator.runInvestInstead(debts, extraMonthly, lumpSum, pretaxMid,  taxRate, horizonMonths);
+  const investHigh = Calculator.runInvestInstead(debts, extraMonthly, lumpSum, pretaxHigh, taxRate, horizonMonths);
+
+  // Summary callout
+  setVal('compare-paydebt-val', fmtDollars(payDebt.netWorthByMonth[horizonMonths]));
+  setVal('compare-low-val',     fmtDollars(investLow.netWorthByMonth[horizonMonths]));
+  setVal('compare-mid-val',     fmtDollars(investMid.netWorthByMonth[horizonMonths]));
+  setVal('compare-high-val',    fmtDollars(investHigh.netWorthByMonth[horizonMonths]));
+
+  // Build chart
+  const cc     = chartColors();
+  const labels = Array.from({ length: horizonMonths + 1 }, (_, i) => i);
+  const dark   = isDarkTheme();
+
+  const opts = buildChartDefaults();
+  opts.scales.y.beginAtZero = false; // net worth can be negative
+  opts.scales.y.grid = {
+    ...(opts.scales.y.grid || {}),
+    color: (ctx) => ctx.tick.value === 0 ? cc.muted : cc.grid,
+  };
+
+  const dataC = {
+    labels,
+    datasets: [
+      {
+        label: 'Pay debt first',
+        data: payDebt.netWorthByMonth,
+        borderColor: cc.accent,
+        backgroundColor: cc.accentFill,
+        borderWidth: 2.5,
+        pointRadius: 0,
+        tension: 0.3,
+        fill: false,
+        order: 1,
+      },
+      {
+        label: `Invest @ ${effLow.toFixed(1)}% after tax`,
+        data: investLow.netWorthByMonth,
+        borderColor: cc.baseline,
+        backgroundColor: 'transparent',
+        borderWidth: 1.5,
+        borderDash: [6, 3],
+        pointRadius: 0,
+        tension: 0.3,
+        fill: false,
+        order: 4,
+      },
+      {
+        label: `Invest @ ${effMid.toFixed(1)}% after tax`,
+        data: investMid.netWorthByMonth,
+        borderColor: dark ? '#818cf8' : '#4f46e5',
+        backgroundColor: 'transparent',
+        borderWidth: 2,
+        pointRadius: 0,
+        tension: 0.3,
+        fill: false,
+        order: 3,
+      },
+      {
+        label: `Invest @ ${effHigh.toFixed(1)}% after tax`,
+        data: investHigh.netWorthByMonth,
+        borderColor: dark ? '#fbbf24' : '#d97706',
+        backgroundColor: 'transparent',
+        borderWidth: 1.5,
+        borderDash: [3, 3],
+        pointRadius: 0,
+        tension: 0.3,
+        fill: false,
+        order: 2,
+      },
+    ],
+  };
+
+  if (chartC) {
+    chartC.data    = dataC;
+    chartC.options = opts;
+    chartC.update('none');
+  } else if (canvasC) {
+    chartC = new Chart(canvasC, { type: 'line', data: dataC, options: opts });
+  }
+
+  setVal('chart-c-summary',
+    `Net worth at ${horizonMonths / 12} years: pay debt = ${fmtDollars(payDebt.netWorthByMonth[horizonMonths])}, ` +
+    `invest at ${effMid.toFixed(1)}% after tax = ${fmtDollars(investMid.netWorthByMonth[horizonMonths])}.`
+  );
+}
+
 function refreshAll() {
   renderTable();
   updateSliderRanges();
   updateSliderDisplays();
 
   const hasDebts = debts.length > 0 && debts.some(d => d.balance > 0);
-  $('section-sliders').style.display = hasDebts ? '' : 'none';
-  $('section-charts').style.display  = hasDebts ? '' : 'none';
+  $('section-sliders').style.display  = hasDebts ? '' : 'none';
+  $('section-charts').style.display   = hasDebts ? '' : 'none';
+  $('section-compare').style.display  = hasDebts ? '' : 'none';
 
   const { baseline, withExtra } = runAllSimulations();
   updateCallouts(baseline, withExtra);
   updateCharts(baseline, withExtra);
+  updateCompareChart(); // no-op if compare-details is collapsed
 
   saveToStorage();
 }
@@ -1222,6 +1375,7 @@ function applyTheme(theme) {
   // Destroy charts so they rebuild with new colors
   if (chartA) { chartA.destroy(); chartA = null; }
   if (chartB) { chartB.destroy(); chartB = null; }
+  if (chartC) { chartC.destroy(); chartC = null; }
 }
 
 function toggleTheme() {
@@ -1231,6 +1385,7 @@ function toggleTheme() {
   try { localStorage.setItem('debtshovel-theme', next); } catch (e) {}
   const { baseline, withExtra } = runAllSimulations();
   updateCharts(baseline, withExtra);
+  updateCompareChart();
 }
 
 function loadTheme() {
@@ -1418,7 +1573,36 @@ function wireEvents() {
       const { baseline, withExtra } = runAllSimulations();
       updateCallouts(baseline, withExtra);
       updateCharts(baseline, withExtra);
+      updateCompareChart();
     });
+  });
+
+  // Compare section: horizon picker
+  document.querySelectorAll('#horizon-picker .seg-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#horizon-picker .seg-btn')
+        .forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      updateCompareChart();
+    });
+  });
+
+  // Compare section: rate inputs and tax rate
+  ['rate-low', 'rate-mid', 'rate-high', 'compare-tax-rate'].forEach(id => {
+    $(id)?.addEventListener('input', updateCompareChart);
+  });
+
+  // Compare section: tax-advantaged toggle
+  $('compare-tax-advantaged')?.addEventListener('change', () => {
+    const isTaxAdv = $('compare-tax-advantaged').checked;
+    const field = $('tax-rate-field');
+    if (field) field.style.display = isTaxAdv ? 'none' : '';
+    updateCompareChart();
+  });
+
+  // Compare section: open/close details — lazy init
+  $('compare-details')?.addEventListener('toggle', () => {
+    if ($('compare-details').open) updateCompareChart();
   });
 }
 

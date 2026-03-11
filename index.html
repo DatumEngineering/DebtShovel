@@ -266,6 +266,136 @@
     </div><!-- .charts-grid -->
   </section>
 
+  <!-- ===== Debt vs. Investing (collapsible, below main charts) ===== -->
+  <section id="section-compare">
+    <details id="compare-details">
+      <summary class="compare-toggle">
+        <span class="compare-toggle-label">
+          <svg class="compare-chevron" aria-hidden="true" width="16" height="16"
+               viewBox="0 0 16 16" fill="none">
+            <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          What if you invested instead?
+        </span>
+        <span class="compare-toggle-hint">Explore the invest-vs-pay-debt tradeoff</span>
+      </summary>
+
+      <div class="compare-body">
+        <!-- Controls row -->
+        <div class="compare-controls">
+          <!-- Time horizon -->
+          <div class="compare-control-group" role="group" aria-labelledby="horizon-label">
+            <span id="horizon-label" class="control-label">Time horizon</span>
+            <div class="segmented-control" id="horizon-picker">
+              <button class="seg-btn" data-years="10">10 yr</button>
+              <button class="seg-btn" data-years="15">15 yr</button>
+              <button class="seg-btn" data-years="20">20 yr</button>
+              <button class="seg-btn active" data-years="30">30 yr</button>
+            </div>
+          </div>
+
+          <!-- Pre-tax return rates -->
+          <div class="compare-control-group compare-rates" role="group" aria-labelledby="rates-label">
+            <span id="rates-label" class="control-label">Pre-tax annual return (invest instead)</span>
+            <div class="rate-inputs">
+              <label class="rate-input-wrap rate-pessimistic">
+                <span class="rate-band-label">Pessimistic</span>
+                <div class="slider-number-wrap">
+                  <input type="number" id="rate-low" class="slider-number-input tabular"
+                         min="0" max="30" step="0.5" value="7"
+                         aria-label="Pessimistic pre-tax annual return %" />
+                  <span class="input-suffix" aria-hidden="true">%</span>
+                </div>
+              </label>
+              <label class="rate-input-wrap rate-median">
+                <span class="rate-band-label">Median</span>
+                <div class="slider-number-wrap">
+                  <input type="number" id="rate-mid" class="slider-number-input tabular"
+                         min="0" max="30" step="0.5" value="10.5"
+                         aria-label="Median pre-tax annual return %" />
+                  <span class="input-suffix" aria-hidden="true">%</span>
+                </div>
+              </label>
+              <label class="rate-input-wrap rate-optimistic">
+                <span class="rate-band-label">Optimistic</span>
+                <div class="slider-number-wrap">
+                  <input type="number" id="rate-high" class="slider-number-input tabular"
+                         min="0" max="30" step="0.5" value="14"
+                         aria-label="Optimistic pre-tax annual return %" />
+                  <span class="input-suffix" aria-hidden="true">%</span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Tax on gains -->
+          <div class="compare-control-group" role="group" aria-labelledby="taxrate-label">
+            <span id="taxrate-label" class="control-label">Tax on gains</span>
+            <div class="tax-rate-wrap">
+              <label class="tax-toggle-label">
+                <input type="checkbox" id="compare-tax-advantaged" />
+                <span>Tax-advantaged account (IRA&nbsp;/&nbsp;401k)</span>
+              </label>
+              <div id="tax-rate-field">
+                <label class="rate-input-wrap">
+                  <span class="rate-band-label">Capital gains rate</span>
+                  <div class="slider-number-wrap">
+                    <input type="number" id="compare-tax-rate" class="slider-number-input tabular"
+                           min="0" max="50" step="1" value="15"
+                           aria-label="Capital gains tax rate %" />
+                    <span class="input-suffix" aria-hidden="true">%</span>
+                  </div>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div><!-- /.compare-controls -->
+
+        <!-- Chart C -->
+        <div class="chart-card">
+          <div class="chart-card-header">
+            <h3>Net Worth Over Time</h3>
+            <span class="chart-subtitle" id="compare-effective-rates"></span>
+          </div>
+          <div class="chart-wrap" id="chart-c-wrap">
+            <canvas id="chart-c" role="img"
+                    aria-label="Line chart comparing net worth: pay debt first vs invest instead"></canvas>
+            <div class="chart-empty" id="chart-c-empty">Add a debt to see the comparison.</div>
+          </div>
+          <div class="sr-only" id="chart-c-summary" aria-live="polite"></div>
+        </div>
+
+        <!-- Summary callout at horizon -->
+        <div class="compare-summary callout" aria-live="polite" id="compare-summary-callout">
+          <div class="callout-item">
+            <span class="label">Pay debt first</span>
+            <span class="value" id="compare-paydebt-val">—</span>
+          </div>
+          <div class="callout-item">
+            <span class="label">Invest @ <span id="compare-low-pct-label">—</span>% after tax</span>
+            <span class="value neutral" id="compare-low-val">—</span>
+          </div>
+          <div class="callout-item">
+            <span class="label">Invest @ <span id="compare-mid-pct-label">—</span>% after tax</span>
+            <span class="value neutral" id="compare-mid-val">—</span>
+          </div>
+          <div class="callout-item">
+            <span class="label">Invest @ <span id="compare-high-pct-label">—</span>% after tax</span>
+            <span class="value neutral" id="compare-high-val">—</span>
+          </div>
+        </div>
+
+        <p class="compare-disclaimer">
+          Returns are nominal (before inflation). Tax drag modeled as annual realization —
+          actual after-tax results in a buy-and-hold account will be somewhat higher.
+          Interest saved on debt is always tax-free (consumer debt assumed; no mortgage
+          deductibility modeled).
+        </p>
+      </div><!-- /.compare-body -->
+    </details>
+  </section>
+
 </main>
 
 <!-- ===== Footer ===== -->
