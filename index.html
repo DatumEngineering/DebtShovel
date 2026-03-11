@@ -18,7 +18,8 @@
 <header class="app-header" role="banner">
   <div class="logo">
     <!-- Clean shovel silhouette; hover reveals easter egg -->
-    <span title="No, dig UP, stupid!" aria-hidden="true">
+    <a href="https://www.youtube.com/watch?v=b97zJxKEqAk" target="_blank" rel="noopener"
+       title="No, dig UP, stupid!" aria-hidden="true" tabindex="-1" style="color:inherit;line-height:0;display:block">
       <svg class="logo-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 46"
            width="26" height="38" aria-hidden="true">
         <!-- T-grip -->
@@ -28,13 +29,22 @@
         <!-- Blade (spade shape: curved top, pointed bottom) -->
         <path d="M16,45 L4,27 Q16,19 28,27 Z" fill="currentColor"/>
       </svg>
-    </span>
+    </a>
     <div>
       <h1>DebtShovel</h1>
       <div class="tagline">Stop digging down. Dig <em>up</em>.</div>
     </div>
   </div>
   <div class="header-actions">
+    <button class="btn btn-secondary btn-sm" id="btn-export" aria-label="Export debts to JSON file" title="Save your debts to a file">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Save
+    </button>
+    <label class="btn btn-secondary btn-sm" for="import-file" aria-label="Import debts from JSON file" title="Load debts from a saved file" tabindex="0" role="button">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      Load
+    </label>
+    <input type="file" id="import-file" accept=".json" style="display:none" aria-hidden="true" />
     <button class="btn-theme" id="btn-theme" aria-label="Toggle light/dark theme" title="Toggle theme">
       <svg id="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
         <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
@@ -98,7 +108,11 @@
         </svg>
       </div>
       <strong>No debts added yet</strong>
-      <p>Click <em>+ Add Debt</em> to enter your first debt and start your payoff plan.</p>
+      <p>Enter your balances, APRs, and payments to see your personalized payoff plan.</p>
+      <button class="btn btn-accent" id="btn-add-debt-empty" aria-label="Add your first debt" style="margin-top:var(--gap-sm)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add Your First Debt
+      </button>
     </div>
 
     <!-- Simulation cap warning -->
@@ -145,6 +159,7 @@
             <option value="highestPayment">Highest Monthly Payment first</option>
             <option value="mostInterest">Most Interest/Month first</option>
           </select>
+          <p class="strategy-hint" id="lump-strategy-hint"></p>
         </div>
       </div>
 
@@ -180,6 +195,7 @@
             <option value="highestPayment">Highest Monthly Payment first</option>
             <option value="mostInterest">Most Interest/Month first</option>
           </select>
+          <p class="strategy-hint" id="extra-strategy-hint"></p>
         </div>
       </div>
 
@@ -198,12 +214,12 @@
           <span class="value" id="combined-interest-saved">$0.00</span>
         </div>
         <div class="callout-item">
-          <span class="label">Paid Off Sooner</span>
+          <span class="label">Debt Free</span>
           <span class="value" id="combined-months-saved">—</span>
         </div>
         <div class="callout-item">
-          <span class="label">You're Keeping</span>
-          <span class="value" id="keeping-amount">$0.00</span><span class="label">/mo</span>
+          <span class="label">Min-only payoff</span>
+          <span class="value neutral" id="baseline-payoff-date">—</span>
         </div>
       </div>
 
@@ -370,7 +386,8 @@
         </div>
 
         <div class="warn-badge" id="m-payment-warn" style="display:none;" role="alert">
-          ⚠️ Payment doesn't cover interest — debt will never pay off
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          Payment doesn't cover interest — debt will never pay off
         </div>
       </div>
 
@@ -410,7 +427,7 @@
                 <option value="9">September</option><option value="10">October</option>
                 <option value="11">November</option><option value="12">December</option>
               </select>
-              <input type="number" id="a-start-year" placeholder="Year" min="1900" max="2100" step="1" aria-label="Start year" />
+              <input type="text" inputmode="numeric" id="a-start-year" placeholder="Year" maxlength="4" aria-label="Start year" />
             </div>
             <span class="field-error" id="a-start-date-err" role="alert"></span>
           </div>
@@ -456,7 +473,8 @@
           </div>
         </div>
         <div class="callout-note escrow-note" id="a-escrow-persist-note" style="display:none">
-          ⚠️ Escrow (taxes &amp; insurance) continues after the mortgage is paid off — budget for it separately.
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0;margin-top:1px"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          Escrow (taxes &amp; insurance) continues after the mortgage is paid off — budget for it separately.
         </div>
 
         <div class="callout-note">
@@ -516,7 +534,7 @@
               <option value="9">September</option><option value="10">October</option>
               <option value="11">November</option><option value="12">December</option>
             </select>
-            <input type="number" id="p-target-year" placeholder="Year" min="2024" max="2100" step="1" aria-label="Target payoff year" />
+            <input type="text" inputmode="numeric" id="p-target-year" placeholder="Year" maxlength="4" aria-label="Target payoff year" />
           </div>
           <span class="field-error" id="p-target-date-err" role="alert"></span>
         </div>
@@ -543,6 +561,16 @@
 
     </div><!-- .modal-body -->
 
+    <!-- Freed-payment allocation — shown only on step 2 -->
+    <div id="modal-alloc-section" class="modal-alloc-section" style="display:none">
+      <label for="modal-freed-alloc">When paid off, its minimum payment:</label>
+      <select id="modal-freed-alloc" aria-label="Freed payment allocation">
+        <option value="100">Roll it all forward → snowball</option>
+        <option value="50">Split — half forward, half mine</option>
+        <option value="0">Keep it all — don't snowball</option>
+      </select>
+    </div>
+
     <div class="modal-footer">
       <button class="btn btn-ghost" id="modal-cancel">Cancel</button>
       <button class="btn btn-primary" id="modal-confirm" style="display:none;">Add Debt</button>
@@ -550,6 +578,8 @@
 
   </div><!-- .modal -->
 </div><!-- .modal-backdrop -->
+
+<div id="toast" role="status" aria-live="polite"></div>
 
 </body>
 </html>

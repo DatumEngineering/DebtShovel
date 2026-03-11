@@ -199,6 +199,8 @@ function renderTable() {
           <div class="debt-actions">
             <button class="btn-icon" data-action="edit" data-id="${debt.id}" aria-label="Edit ${escapeHtml(debt.name)}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
             <button class="btn-icon danger" data-action="delete" data-id="${debt.id}" aria-label="Delete ${escapeHtml(debt.name)}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
+            <button class="btn-text danger" data-action="delete-confirm" data-id="${debt.id}" aria-label="Confirm delete ${escapeHtml(debt.name)}">Delete</button>
+            <button class="btn-text" data-action="delete-cancel" aria-label="Cancel delete">Cancel</button>
           </div>
         </td>
       </tr>
@@ -258,9 +260,21 @@ function renderTable() {
 
   document.querySelectorAll('[data-action="delete"]').forEach(btn => {
     btn.addEventListener('click', e => {
+      e.currentTarget.closest('tr').classList.add('confirming-delete');
+    });
+  });
+
+  document.querySelectorAll('[data-action="delete-confirm"]').forEach(btn => {
+    btn.addEventListener('click', e => {
       const id = parseInt(e.currentTarget.dataset.id);
       debts = debts.filter(d => d.id !== id);
       refreshAll();
+    });
+  });
+
+  document.querySelectorAll('[data-action="delete-cancel"]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.currentTarget.closest('tr').classList.remove('confirming-delete');
     });
   });
 }
@@ -351,18 +365,17 @@ function updateCallouts(baseline, withExtra) {
     setVal('accelerated-interest', '$0.00');
     setVal('combined-interest-saved', '$0.00');
     setVal('combined-months-saved', '—');
-    setVal('keeping-amount', '$0.00');
+    setVal('baseline-payoff-date', '—');
     return;
   }
 
   const interestSaved = Math.max(0, baseline.totalInterestPaid - withExtra.totalInterestPaid);
-  const monthsSaved   = Math.max(0, baseline.months - withExtra.months);
 
   setVal('baseline-interest',       fmtDollars(baseline.totalInterestPaid));
   setVal('accelerated-interest',    fmtDollars(withExtra.totalInterestPaid));
   setVal('combined-interest-saved', fmtDollars(interestSaved));
-  setVal('combined-months-saved',   monthsSaved > 0 ? fmtDuration(monthsSaved) : '—');
-  setVal('keeping-amount',          fmtDollars(withExtra.keptPerMonth));
+  setVal('combined-months-saved',   withExtra.months > 0 ? fmtDate(withExtra.months) : '—');
+  setVal('baseline-payoff-date',    baseline.months > 0 ? fmtDate(baseline.months) : '—');
 }
 
 // ---------------------------------------------------------------------------
@@ -710,6 +723,9 @@ function showStep(stepId) {
       if (first) first.focus();
     }, 50);
   }
+  // Show alloc selector only on step-2 variants
+  const allocSection = $('modal-alloc-section');
+  if (allocSection) allocSection.style.display = stepId !== 'step-1' ? '' : 'none';
 }
 
 function resetModal() {
@@ -747,6 +763,10 @@ function resetModal() {
   setVal('p-calc-payment', '—');
 
   showEl('m-payment-warn', false);
+
+  // Reset freed-payment allocation
+  const allocEl = $('modal-freed-alloc');
+  if (allocEl) allocEl.value = '100';
 
   // Reset term unit
   const termYearsRadio = $('term-years');
@@ -804,6 +824,10 @@ function prefillModal(debt) {
     $('p-override-payment').value = debt.minPayment;
     updatePayoffDatePreview();
   }
+
+  // Pre-fill freed-payment allocation
+  const allocEl = $('modal-freed-alloc');
+  if (allocEl) allocEl.value = debt.freedAllocation ?? '100';
 }
 
 // ---------------------------------------------------------------------------
@@ -969,15 +993,17 @@ function validateAndConfirm() {
 
   if (!debt) return; // validation failed
 
+  const freedAllocation = $('modal-freed-alloc')?.value || '100';
+
   if (editingId !== null) {
     // Update existing
     const idx = debts.findIndex(d => d.id === editingId);
     if (idx !== -1) {
-      debts[idx] = { ...debt, id: editingId, freedAllocation: debts[idx].freedAllocation };
+      debts[idx] = { ...debt, id: editingId, freedAllocation };
     }
   } else {
     // Add new
-    debts.push({ ...debt, id: nextId++, freedAllocation: '100' });
+    debts.push({ ...debt, id: nextId++, freedAllocation });
   }
 
   closeModal();
@@ -1117,6 +1143,53 @@ function saveToStorage() {
   }
 }
 
+let _toastTimer = null;
+function showToast(message, type = 'success') {
+  const el = $('toast');
+  if (!el) return;
+  if (_toastTimer) clearTimeout(_toastTimer);
+  el.textContent = message;
+  el.className = `show toast-${type}`;
+  _toastTimer = setTimeout(() => {
+    el.className = '';
+    _toastTimer = null;
+  }, 2800);
+}
+
+function exportToFile() {
+  const data = JSON.stringify({ debts, nextId }, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'debtshovel-backup.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Saved to file');
+}
+
+function importFromFile(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (Array.isArray(data.debts)) {
+        debts = data.debts.map(d => ({
+          ...d,
+          freedAllocation: d.freedAllocation === 'global' ? '100' : (d.freedAllocation || '100'),
+        }));
+      }
+      if (data.nextId) nextId = data.nextId;
+      refreshAll();
+      const count = debts.length;
+      showToast(`Loaded ${count} debt${count !== 1 ? 's' : ''}`);
+    } catch (err) {
+      showToast('Could not load file — check it is a DebtShovel backup', 'error');
+    }
+  };
+  reader.readAsText(file);
+}
+
 function loadFromStorage() {
   try {
     const raw = localStorage.getItem('debtshovel-v1');
@@ -1173,6 +1246,11 @@ function wireEvents() {
   // Header buttons
   $('btn-add-debt')?.addEventListener('click', openAddModal);
   $('btn-theme')?.addEventListener('click', toggleTheme);
+  $('btn-export')?.addEventListener('click', exportToFile);
+  $('import-file')?.addEventListener('change', e => {
+    const file = e.target.files?.[0];
+    if (file) { importFromFile(file); e.target.value = ''; }
+  });
 
   // Modal close
   $('modal-close')?.addEventListener('click', closeModal);
@@ -1262,29 +1340,43 @@ function wireEvents() {
   });
 
   // Number inputs — type to set slider value
-  $('lump-input')?.addEventListener('input', () => {
-    const slider = $('slider-lump');
-    if (!slider) return;
-    const v = Math.max(0, Math.min(parseFloat($('lump-input').value) || 0, parseFloat(slider.max)));
-    slider.value = v;
-    $('lump-input').value = v;
-    updateSliderDisplays();
-    const { baseline, withExtra } = runAllSimulations();
-    updateCallouts(baseline, withExtra);
-    updateCharts(baseline, withExtra);
-  });
+  // On input: update live if valid, mark error if not
+  // On blur: always clamp and correct
+  function wireSliderInput(inputId, sliderId) {
+    const input  = $(inputId);
+    const slider = $(sliderId);
+    if (!input || !slider) return;
 
-  $('extra-input')?.addEventListener('input', () => {
-    const slider = $('slider-extra');
-    if (!slider) return;
-    const v = Math.max(0, Math.min(parseFloat($('extra-input').value) || 0, parseFloat(slider.max)));
-    slider.value = v;
-    $('extra-input').value = v;
-    updateSliderDisplays();
-    const { baseline, withExtra } = runAllSimulations();
-    updateCallouts(baseline, withExtra);
-    updateCharts(baseline, withExtra);
-  });
+    input.addEventListener('input', () => {
+      const raw = parseFloat(input.value);
+      if (isNaN(raw) || raw < 0) {
+        input.classList.add('error');
+        return; // don't update charts while mid-typing an invalid value
+      }
+      input.classList.remove('error');
+      const v = Math.min(raw, parseFloat(slider.max));
+      slider.value = v;
+      updateSliderDisplays();
+      const { baseline, withExtra } = runAllSimulations();
+      updateCallouts(baseline, withExtra);
+      updateCharts(baseline, withExtra);
+    });
+
+    input.addEventListener('blur', () => {
+      const raw = parseFloat(input.value);
+      const v = isNaN(raw) || raw < 0 ? 0 : Math.min(raw, parseFloat(slider.max));
+      input.value = v;
+      input.classList.remove('error');
+      slider.value = v;
+      updateSliderDisplays();
+      const { baseline, withExtra } = runAllSimulations();
+      updateCallouts(baseline, withExtra);
+      updateCharts(baseline, withExtra);
+    });
+  }
+
+  wireSliderInput('lump-input',  'slider-lump');
+  wireSliderInput('extra-input', 'slider-extra');
 
   // Chart A toggle: balance view ↔ savings gap
   $('chart-a-toggle')?.addEventListener('click', () => {
@@ -1302,9 +1394,27 @@ function wireEvents() {
     updateCharts(baseline, withExtra);
   });
 
-  // Strategy pickers — update simulation on change
+  // Empty state CTA
+  $('btn-add-debt-empty')?.addEventListener('click', openAddModal);
+
+  // Strategy pickers — update simulation on change + show hint
+  const STRATEGY_HINTS = {
+    avalanche:      'Mathematically optimal — minimizes total interest paid.',
+    snowball:       'Best for motivation — quick wins build momentum.',
+    highestPayment: 'Frees up the largest monthly cash flow soonest.',
+    mostInterest:   'Targets the debt costing you the most per month right now.',
+  };
+
+  function updateStrategyHint(selectId, hintId) {
+    const val = $(selectId)?.value;
+    setVal(hintId, val ? (STRATEGY_HINTS[val] || '') : '');
+  }
+
   ['lump-strategy', 'extra-strategy'].forEach(id => {
+    const hintId = id + '-hint';
+    updateStrategyHint(id, hintId);
     $(id)?.addEventListener('change', () => {
+      updateStrategyHint(id, hintId);
       const { baseline, withExtra } = runAllSimulations();
       updateCallouts(baseline, withExtra);
       updateCharts(baseline, withExtra);
