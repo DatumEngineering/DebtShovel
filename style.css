@@ -342,6 +342,32 @@ tbody td {
 
 .debt-actions { display: flex; gap: 0.35rem; align-items: center; }
 
+/* Inline delete confirmation */
+.debt-actions [data-action="delete-confirm"],
+.debt-actions [data-action="delete-cancel"] { display: none; }
+
+tr.confirming-delete .debt-actions [data-action="edit"],
+tr.confirming-delete .debt-actions [data-action="delete"] { display: none; }
+
+tr.confirming-delete .debt-actions [data-action="delete-confirm"],
+tr.confirming-delete .debt-actions [data-action="delete-cancel"] { display: inline-flex; }
+
+.btn-text {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 0.2rem 0.4rem;
+  border-radius: var(--radius);
+  font-family: inherit;
+  color: var(--text);
+  line-height: 1.3;
+  white-space: nowrap;
+}
+.btn-text:hover { background: var(--surface2); }
+.btn-text.danger { color: var(--danger); }
+.btn-text.danger:hover { background: var(--danger-dim); }
+
 .alloc-select {
   background: var(--surface2);
   color: var(--text);
@@ -562,6 +588,13 @@ input[type="range"]:focus-visible {
 }
 
 .strategy-row select:focus { outline: 2px solid var(--accent2); }
+
+.strategy-hint {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-top: 0.2rem;
+  min-height: 1em;
+}
 
 /* ---- Savings callout ---- */
 .callout {

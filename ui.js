@@ -199,6 +199,8 @@ function renderTable() {
           <div class="debt-actions">
             <button class="btn-icon" data-action="edit" data-id="${debt.id}" aria-label="Edit ${escapeHtml(debt.name)}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
             <button class="btn-icon danger" data-action="delete" data-id="${debt.id}" aria-label="Delete ${escapeHtml(debt.name)}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></button>
+            <button class="btn-text danger" data-action="delete-confirm" data-id="${debt.id}" aria-label="Confirm delete ${escapeHtml(debt.name)}">Delete</button>
+            <button class="btn-text" data-action="delete-cancel" aria-label="Cancel delete">Cancel</button>
           </div>
         </td>
       </tr>
@@ -258,9 +260,21 @@ function renderTable() {
 
   document.querySelectorAll('[data-action="delete"]').forEach(btn => {
     btn.addEventListener('click', e => {
+      e.currentTarget.closest('tr').classList.add('confirming-delete');
+    });
+  });
+
+  document.querySelectorAll('[data-action="delete-confirm"]').forEach(btn => {
+    btn.addEventListener('click', e => {
       const id = parseInt(e.currentTarget.dataset.id);
       debts = debts.filter(d => d.id !== id);
       refreshAll();
+    });
+  });
+
+  document.querySelectorAll('[data-action="delete-cancel"]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.currentTarget.closest('tr').classList.remove('confirming-delete');
     });
   });
 }
@@ -351,6 +365,7 @@ function updateCallouts(baseline, withExtra) {
     setVal('accelerated-interest', '$0.00');
     setVal('combined-interest-saved', '$0.00');
     setVal('combined-months-saved', '—');
+    setVal('baseline-payoff-date', '—');
     return;
   }
 
@@ -360,6 +375,7 @@ function updateCallouts(baseline, withExtra) {
   setVal('accelerated-interest',    fmtDollars(withExtra.totalInterestPaid));
   setVal('combined-interest-saved', fmtDollars(interestSaved));
   setVal('combined-months-saved',   withExtra.months > 0 ? fmtDate(withExtra.months) : '—');
+  setVal('baseline-payoff-date',    baseline.months > 0 ? fmtDate(baseline.months) : '—');
 }
 
 // ---------------------------------------------------------------------------
@@ -1348,9 +1364,27 @@ function wireEvents() {
     updateCharts(baseline, withExtra);
   });
 
-  // Strategy pickers — update simulation on change
+  // Empty state CTA
+  $('btn-add-debt-empty')?.addEventListener('click', openAddModal);
+
+  // Strategy pickers — update simulation on change + show hint
+  const STRATEGY_HINTS = {
+    avalanche:      'Mathematically optimal — minimizes total interest paid.',
+    snowball:       'Best for motivation — quick wins build momentum.',
+    highestPayment: 'Frees up the largest monthly cash flow soonest.',
+    mostInterest:   'Targets the debt costing you the most per month right now.',
+  };
+
+  function updateStrategyHint(selectId, hintId) {
+    const val = $(selectId)?.value;
+    setVal(hintId, val ? (STRATEGY_HINTS[val] || '') : '');
+  }
+
   ['lump-strategy', 'extra-strategy'].forEach(id => {
+    const hintId = id + '-hint';
+    updateStrategyHint(id, hintId);
     $(id)?.addEventListener('change', () => {
+      updateStrategyHint(id, hintId);
       const { baseline, withExtra } = runAllSimulations();
       updateCallouts(baseline, withExtra);
       updateCharts(baseline, withExtra);
