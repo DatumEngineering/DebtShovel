@@ -1143,6 +1143,19 @@ function saveToStorage() {
   }
 }
 
+let _toastTimer = null;
+function showToast(message, type = 'success') {
+  const el = $('toast');
+  if (!el) return;
+  if (_toastTimer) clearTimeout(_toastTimer);
+  el.textContent = message;
+  el.className = `show toast-${type}`;
+  _toastTimer = setTimeout(() => {
+    el.className = '';
+    _toastTimer = null;
+  }, 2800);
+}
+
 function exportToFile() {
   const data = JSON.stringify({ debts, nextId }, null, 2);
   const blob = new Blob([data], { type: 'application/json' });
@@ -1152,6 +1165,7 @@ function exportToFile() {
   a.download = 'debtshovel-backup.json';
   a.click();
   URL.revokeObjectURL(url);
+  showToast('Saved to file');
 }
 
 function importFromFile(file) {
@@ -1167,8 +1181,10 @@ function importFromFile(file) {
       }
       if (data.nextId) nextId = data.nextId;
       refreshAll();
+      const count = debts.length;
+      showToast(`Loaded ${count} debt${count !== 1 ? 's' : ''}`);
     } catch (err) {
-      alert('Could not load file — make sure it is a DebtShovel backup (.json).');
+      showToast('Could not load file — check it is a DebtShovel backup', 'error');
     }
   };
   reader.readAsText(file);
@@ -1324,29 +1340,43 @@ function wireEvents() {
   });
 
   // Number inputs — type to set slider value
-  $('lump-input')?.addEventListener('input', () => {
-    const slider = $('slider-lump');
-    if (!slider) return;
-    const v = Math.max(0, Math.min(parseFloat($('lump-input').value) || 0, parseFloat(slider.max)));
-    slider.value = v;
-    $('lump-input').value = v;
-    updateSliderDisplays();
-    const { baseline, withExtra } = runAllSimulations();
-    updateCallouts(baseline, withExtra);
-    updateCharts(baseline, withExtra);
-  });
+  // On input: update live if valid, mark error if not
+  // On blur: always clamp and correct
+  function wireSliderInput(inputId, sliderId) {
+    const input  = $(inputId);
+    const slider = $(sliderId);
+    if (!input || !slider) return;
 
-  $('extra-input')?.addEventListener('input', () => {
-    const slider = $('slider-extra');
-    if (!slider) return;
-    const v = Math.max(0, Math.min(parseFloat($('extra-input').value) || 0, parseFloat(slider.max)));
-    slider.value = v;
-    $('extra-input').value = v;
-    updateSliderDisplays();
-    const { baseline, withExtra } = runAllSimulations();
-    updateCallouts(baseline, withExtra);
-    updateCharts(baseline, withExtra);
-  });
+    input.addEventListener('input', () => {
+      const raw = parseFloat(input.value);
+      if (isNaN(raw) || raw < 0) {
+        input.classList.add('error');
+        return; // don't update charts while mid-typing an invalid value
+      }
+      input.classList.remove('error');
+      const v = Math.min(raw, parseFloat(slider.max));
+      slider.value = v;
+      updateSliderDisplays();
+      const { baseline, withExtra } = runAllSimulations();
+      updateCallouts(baseline, withExtra);
+      updateCharts(baseline, withExtra);
+    });
+
+    input.addEventListener('blur', () => {
+      const raw = parseFloat(input.value);
+      const v = isNaN(raw) || raw < 0 ? 0 : Math.min(raw, parseFloat(slider.max));
+      input.value = v;
+      input.classList.remove('error');
+      slider.value = v;
+      updateSliderDisplays();
+      const { baseline, withExtra } = runAllSimulations();
+      updateCallouts(baseline, withExtra);
+      updateCharts(baseline, withExtra);
+    });
+  }
+
+  wireSliderInput('lump-input',  'slider-lump');
+  wireSliderInput('extra-input', 'slider-extra');
 
   // Chart A toggle: balance view ↔ savings gap
   $('chart-a-toggle')?.addEventListener('click', () => {

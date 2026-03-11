@@ -637,6 +637,33 @@ input[type="range"]:focus-visible {
 }
 .keeping-callout strong { color: var(--accent2); font-variant-numeric: tabular-nums; }
 
+/* ---- Toast notification ---- */
+#toast {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(2rem);
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 0.5rem 1.1rem;
+  font-size: 0.875rem;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 9999;
+  white-space: nowrap;
+}
+#toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
+}
+#toast.toast-success { border-color: var(--accent); color: var(--accent); }
+#toast.toast-error   { border-color: var(--danger); color: var(--danger); }
+
 /* ---- Warning banner ---- */
 .cap-warning {
   background: var(--warn-dim);
