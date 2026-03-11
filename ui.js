@@ -24,6 +24,18 @@ let chartC = null;
 /** Chart A display mode: 'balances' | 'gap' */
 let chartAMode = 'balances';
 
+const STRATEGY_HINTS = {
+  avalanche:      'Mathematically optimal — minimizes total interest paid.',
+  snowball:       'Best for motivation — quick wins build momentum.',
+  highestPayment: 'Frees up the largest monthly cash flow soonest.',
+  mostInterest:   'Targets the debt costing you the most per month right now.',
+};
+
+function updateStrategyHint(selectId, hintId) {
+  const val = $(selectId)?.value;
+  setVal(hintId, val ? (STRATEGY_HINTS[val] || '') : '');
+}
+
 /** Currently editing debt ID (null = adding new) */
 let editingId = null;
 
@@ -1289,8 +1301,21 @@ function validatePayoffDate() {
 
 function saveToStorage() {
   try {
-    const data = JSON.stringify({ debts, nextId });
-    localStorage.setItem('debtshovel-v1', data);
+    const ui = {
+      lumpSum:              parseFloat($('slider-lump')?.value  || 0),
+      extraMonthly:         parseFloat($('slider-extra')?.value || 0),
+      lumpStrategy:         $('lump-strategy')?.value  || 'avalanche',
+      extraStrategy:        $('extra-strategy')?.value || 'avalanche',
+      chartAMode,
+      compareOpen:          $('compare-details')?.open || false,
+      compareHorizonYears:  parseInt(document.querySelector('#horizon-picker .seg-btn.active')?.dataset.years || 30),
+      compareRateLow:       parseFloat($('rate-low')?.value  || 7),
+      compareRateMid:       parseFloat($('rate-mid')?.value  || 10.5),
+      compareRateHigh:      parseFloat($('rate-high')?.value || 14),
+      compareTaxRate:       parseFloat($('compare-tax-rate')?.value || 15),
+      compareTaxAdvantaged: $('compare-tax-advantaged')?.checked || false,
+    };
+    localStorage.setItem('debtshovel-v1', JSON.stringify({ debts, nextId, ui }));
   } catch (e) {
     console.warn('Could not save to localStorage:', e);
   }
@@ -1348,11 +1373,70 @@ function loadFromStorage() {
     const raw = localStorage.getItem('debtshovel-v1');
     if (!raw) return;
     const data = JSON.parse(raw);
-    if (data.debts)   debts = data.debts.map(d => ({
+
+    // Debts
+    if (data.debts)  debts  = data.debts.map(d => ({
       ...d,
-      freedAllocation: d.freedAllocation === 'global' ? '100' : (d.freedAllocation || '100')
+      freedAllocation: d.freedAllocation === 'global' ? '100' : (d.freedAllocation || '100'),
     }));
-    if (data.nextId)  nextId = data.nextId;
+    if (data.nextId) nextId = data.nextId;
+
+    // UI state (absent in saves from older versions — all guarded with ??)
+    const ui = data.ui;
+    if (!ui) return;
+
+    // Sliders (set value on both range and number input)
+    const setSlider = (sliderId, inputId, val) => {
+      if (val == null) return;
+      const s = $(sliderId); if (s) s.value = val;
+      const i = $(inputId);  if (i) i.value = val;
+    };
+    setSlider('slider-lump',  'lump-input',  ui.lumpSum);
+    setSlider('slider-extra', 'extra-input', ui.extraMonthly);
+
+    // Strategy selects + hints
+    if (ui.lumpStrategy)  { const el = $('lump-strategy');  if (el) { el.value = ui.lumpStrategy;  updateStrategyHint('lump-strategy',  'lump-strategy-hint');  } }
+    if (ui.extraStrategy) { const el = $('extra-strategy'); if (el) { el.value = ui.extraStrategy; updateStrategyHint('extra-strategy', 'extra-strategy-hint'); } }
+
+    // Chart A mode
+    if (ui.chartAMode) {
+      chartAMode = ui.chartAMode;
+      const btn = $('chart-a-toggle');
+      const sub = $('chart-a-subtitle');
+      if (chartAMode === 'gap') {
+        if (btn) btn.textContent = 'Show balances';
+        if (sub) sub.textContent = 'Interest + balance saved vs. minimum payments';
+      }
+    }
+
+    // Compare: rate inputs
+    if (ui.compareRateLow  != null) { const el = $('rate-low');          if (el) el.value = ui.compareRateLow;  }
+    if (ui.compareRateMid  != null) { const el = $('rate-mid');          if (el) el.value = ui.compareRateMid;  }
+    if (ui.compareRateHigh != null) { const el = $('rate-high');         if (el) el.value = ui.compareRateHigh; }
+    if (ui.compareTaxRate  != null) { const el = $('compare-tax-rate');  if (el) el.value = ui.compareTaxRate;  }
+
+    // Compare: tax-advantaged checkbox
+    if (ui.compareTaxAdvantaged) {
+      const el = $('compare-tax-advantaged');
+      if (el) {
+        el.checked = true;
+        const field = $('tax-rate-field');
+        if (field) field.style.display = 'none';
+      }
+    }
+
+    // Compare: horizon picker
+    if (ui.compareHorizonYears != null) {
+      document.querySelectorAll('#horizon-picker .seg-btn').forEach(btn => {
+        btn.classList.toggle('active', parseInt(btn.dataset.years) === ui.compareHorizonYears);
+      });
+    }
+
+    // Compare: reopen details if it was open (refreshAll will trigger updateCompareChart)
+    if (ui.compareOpen) {
+      const details = $('compare-details');
+      if (details) details.open = true;
+    }
   } catch (e) {
     console.warn('Could not load from localStorage:', e);
   }
@@ -1553,18 +1637,6 @@ function wireEvents() {
   $('btn-add-debt-empty')?.addEventListener('click', openAddModal);
 
   // Strategy pickers — update simulation on change + show hint
-  const STRATEGY_HINTS = {
-    avalanche:      'Mathematically optimal — minimizes total interest paid.',
-    snowball:       'Best for motivation — quick wins build momentum.',
-    highestPayment: 'Frees up the largest monthly cash flow soonest.',
-    mostInterest:   'Targets the debt costing you the most per month right now.',
-  };
-
-  function updateStrategyHint(selectId, hintId) {
-    const val = $(selectId)?.value;
-    setVal(hintId, val ? (STRATEGY_HINTS[val] || '') : '');
-  }
-
   ['lump-strategy', 'extra-strategy'].forEach(id => {
     const hintId = id + '-hint';
     updateStrategyHint(id, hintId);
