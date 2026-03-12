@@ -709,19 +709,12 @@ function updateCompareChart() {
   const effMid  = +(p50 * (1 - taxRate)).toFixed(2);
   const effHigh = +(p75 * (1 - taxRate)).toFixed(2);
 
-  // Show computed pre-tax percentile rates — updates live as horizon changes
+  // Show computed percentile rates — updates live as horizon / μ / σ / tax change
   const taxLabel = taxRate === 0 ? 'tax-advantaged' : `${(taxRate * 100).toFixed(0)}% cap gains`;
   setVal('computed-rates-display',
-    `At ${horizonYears} yr — 25th: ${p25.toFixed(1)}%, Median: ${p50.toFixed(1)}%, 75th: ${p75.toFixed(1)}% pre-tax` +
-    ` → ${effLow.toFixed(1)}% / ${effMid.toFixed(1)}% / ${effHigh.toFixed(1)}% after tax (${taxLabel})`
+    `${horizonYears} yr horizon — pre-tax: ${p25.toFixed(1)}% / ${p50.toFixed(1)}% / ${p75.toFixed(1)}%` +
+    ` → after-tax (${taxLabel}): ${effLow.toFixed(1)}% / ${effMid.toFixed(1)}% / ${effHigh.toFixed(1)}%`
   );
-
-  // Update labels in callout
-  setVal('compare-low-pct-label',  effLow.toFixed(1));
-  setVal('compare-mid-pct-label',  effMid.toFixed(1));
-  setVal('compare-high-pct-label', effHigh.toFixed(1));
-
-  setVal('compare-effective-rates', ''); // replaced by computed-rates-display
 
   // Run scenarios
   const payDebt   = Calculator.runPayDebtThenInvest(
@@ -764,7 +757,7 @@ function updateCompareChart() {
         order: 1,
       },
       {
-        label: `Invest @ ${effLow.toFixed(1)}% after tax`,
+        label: 'Invest — 25th percentile',
         data: investLow.netWorthByMonth,
         borderColor: cc.baseline,
         backgroundColor: 'transparent',
@@ -776,7 +769,7 @@ function updateCompareChart() {
         order: 4,
       },
       {
-        label: `Invest @ ${effMid.toFixed(1)}% after tax`,
+        label: 'Invest — 50th percentile (median)',
         data: investMid.netWorthByMonth,
         borderColor: dark ? '#818cf8' : '#4f46e5',
         backgroundColor: 'transparent',
@@ -787,7 +780,7 @@ function updateCompareChart() {
         order: 3,
       },
       {
-        label: `Invest @ ${effHigh.toFixed(1)}% after tax`,
+        label: 'Invest — 75th percentile',
         data: investHigh.netWorthByMonth,
         borderColor: dark ? '#fbbf24' : '#d97706',
         backgroundColor: 'transparent',
@@ -811,7 +804,7 @@ function updateCompareChart() {
 
   setVal('chart-c-summary',
     `Net worth at ${horizonMonths / 12} years: pay debt = ${fmtDollars(payDebt.netWorthByMonth[horizonMonths])}, ` +
-    `invest at ${effMid.toFixed(1)}% after tax = ${fmtDollars(investMid.netWorthByMonth[horizonMonths])}.`
+    `invest (50th percentile) = ${fmtDollars(investMid.netWorthByMonth[horizonMonths])}.`
   );
 }
 
