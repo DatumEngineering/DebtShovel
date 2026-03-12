@@ -24,6 +24,18 @@ let chartC = null;
 /** Chart A display mode: 'balances' | 'gap' */
 let chartAMode = 'balances';
 
+const STRATEGY_HINTS = {
+  avalanche:      'Mathematically optimal — minimizes total interest paid.',
+  snowball:       'Best for motivation — quick wins build momentum.',
+  highestPayment: 'Frees up the largest monthly cash flow soonest.',
+  mostInterest:   'Targets the debt costing you the most per month right now.',
+};
+
+function updateStrategyHint(selectId, hintId) {
+  const val = $(selectId)?.value;
+  setVal(hintId, val ? (STRATEGY_HINTS[val] || '') : '');
+}
+
 /** Currently editing debt ID (null = adding new) */
 let editingId = null;
 
@@ -685,34 +697,32 @@ function updateCompareChart() {
   const lumpStrategy  = $('lump-strategy')?.value  || 'avalanche';
   const extraStrategy = $('extra-strategy')?.value || 'avalanche';
 
-  const pretaxLow  = parseFloat($('rate-low')?.value)  || 7;
-  const pretaxMid  = parseFloat($('rate-mid')?.value)  || 10.5;
-  const pretaxHigh = parseFloat($('rate-high')?.value) || 14;
-  const taxRate    = getCompareTaxRate();
+  const mu      = parseFloat($('compare-mean')?.value) || 10.5;
+  const sigma   = parseFloat($('compare-vol')?.value)  || 16;
+  const taxRate = getCompareTaxRate();
+  const horizonYears = horizonMonths / 12;
 
-  const effLow  = +(pretaxLow  * (1 - taxRate)).toFixed(2);
-  const effMid  = +(pretaxMid  * (1 - taxRate)).toFixed(2);
-  const effHigh = +(pretaxHigh * (1 - taxRate)).toFixed(2);
+  // Percentile CAGR bands narrow with horizon: σ_cagr = σ/√N, center = μ − σ²/2
+  const { p25, p50, p75 } = Calculator.computePercentileRates(mu, sigma, horizonYears);
 
-  // Update labels in callout
-  setVal('compare-low-pct-label',  effLow.toFixed(1));
-  setVal('compare-mid-pct-label',  effMid.toFixed(1));
-  setVal('compare-high-pct-label', effHigh.toFixed(1));
+  const effLow  = +(p25 * (1 - taxRate)).toFixed(2);
+  const effMid  = +(p50 * (1 - taxRate)).toFixed(2);
+  const effHigh = +(p75 * (1 - taxRate)).toFixed(2);
 
-  const taxLabel = taxRate === 0
-    ? 'tax-advantaged'
-    : `${(taxRate * 100).toFixed(0)}% cap gains`;
-  setVal('compare-effective-rates',
-    `After-tax returns (${taxLabel}): ${effLow.toFixed(1)}% / ${effMid.toFixed(1)}% / ${effHigh.toFixed(1)}%`
+  // Show computed percentile rates — updates live as horizon / μ / σ / tax change
+  const taxLabel = taxRate === 0 ? 'tax-advantaged' : `${(taxRate * 100).toFixed(0)}% cap gains`;
+  setVal('computed-rates-display',
+    `${horizonYears} yr horizon — pre-tax: ${p25.toFixed(1)}% / ${p50.toFixed(1)}% / ${p75.toFixed(1)}%` +
+    ` → after-tax (${taxLabel}): ${effLow.toFixed(1)}% / ${effMid.toFixed(1)}% / ${effHigh.toFixed(1)}%`
   );
 
   // Run scenarios
   const payDebt   = Calculator.runPayDebtThenInvest(
-    debts, extraMonthly, lumpSum, extraStrategy, lumpStrategy, pretaxMid, taxRate, horizonMonths
+    debts, extraMonthly, lumpSum, extraStrategy, lumpStrategy, p50, taxRate, horizonMonths
   );
-  const investLow  = Calculator.runInvestInstead(debts, extraMonthly, lumpSum, pretaxLow,  taxRate, horizonMonths);
-  const investMid  = Calculator.runInvestInstead(debts, extraMonthly, lumpSum, pretaxMid,  taxRate, horizonMonths);
-  const investHigh = Calculator.runInvestInstead(debts, extraMonthly, lumpSum, pretaxHigh, taxRate, horizonMonths);
+  const investLow  = Calculator.runInvestInstead(debts, extraMonthly, lumpSum, p25, taxRate, horizonMonths);
+  const investMid  = Calculator.runInvestInstead(debts, extraMonthly, lumpSum, p50, taxRate, horizonMonths);
+  const investHigh = Calculator.runInvestInstead(debts, extraMonthly, lumpSum, p75, taxRate, horizonMonths);
 
   // Summary callout
   setVal('compare-paydebt-val', fmtDollars(payDebt.netWorthByMonth[horizonMonths]));
@@ -747,7 +757,7 @@ function updateCompareChart() {
         order: 1,
       },
       {
-        label: `Invest @ ${effLow.toFixed(1)}% after tax`,
+        label: 'Invest — 25th percentile',
         data: investLow.netWorthByMonth,
         borderColor: cc.baseline,
         backgroundColor: 'transparent',
@@ -759,7 +769,7 @@ function updateCompareChart() {
         order: 4,
       },
       {
-        label: `Invest @ ${effMid.toFixed(1)}% after tax`,
+        label: 'Invest — 50th percentile (median)',
         data: investMid.netWorthByMonth,
         borderColor: dark ? '#818cf8' : '#4f46e5',
         backgroundColor: 'transparent',
@@ -770,7 +780,7 @@ function updateCompareChart() {
         order: 3,
       },
       {
-        label: `Invest @ ${effHigh.toFixed(1)}% after tax`,
+        label: 'Invest — 75th percentile',
         data: investHigh.netWorthByMonth,
         borderColor: dark ? '#fbbf24' : '#d97706',
         backgroundColor: 'transparent',
@@ -794,7 +804,7 @@ function updateCompareChart() {
 
   setVal('chart-c-summary',
     `Net worth at ${horizonMonths / 12} years: pay debt = ${fmtDollars(payDebt.netWorthByMonth[horizonMonths])}, ` +
-    `invest at ${effMid.toFixed(1)}% after tax = ${fmtDollars(investMid.netWorthByMonth[horizonMonths])}.`
+    `invest (50th percentile) = ${fmtDollars(investMid.netWorthByMonth[horizonMonths])}.`
   );
 }
 
@@ -1289,8 +1299,20 @@ function validatePayoffDate() {
 
 function saveToStorage() {
   try {
-    const data = JSON.stringify({ debts, nextId });
-    localStorage.setItem('debtshovel-v1', data);
+    const ui = {
+      lumpSum:              parseFloat($('slider-lump')?.value  || 0),
+      extraMonthly:         parseFloat($('slider-extra')?.value || 0),
+      lumpStrategy:         $('lump-strategy')?.value  || 'avalanche',
+      extraStrategy:        $('extra-strategy')?.value || 'avalanche',
+      chartAMode,
+      compareOpen:          $('compare-details')?.open || false,
+      compareHorizonYears:  parseInt(document.querySelector('#horizon-picker .seg-btn.active')?.dataset.years || 30),
+      compareMean:          parseFloat($('compare-mean')?.value || 10.5),
+      compareVol:           parseFloat($('compare-vol')?.value  || 16),
+      compareTaxRate:       parseFloat($('compare-tax-rate')?.value || 15),
+      compareTaxAdvantaged: $('compare-tax-advantaged')?.checked || false,
+    };
+    localStorage.setItem('debtshovel-v1', JSON.stringify({ debts, nextId, ui }));
   } catch (e) {
     console.warn('Could not save to localStorage:', e);
   }
@@ -1348,11 +1370,69 @@ function loadFromStorage() {
     const raw = localStorage.getItem('debtshovel-v1');
     if (!raw) return;
     const data = JSON.parse(raw);
-    if (data.debts)   debts = data.debts.map(d => ({
+
+    // Debts
+    if (data.debts)  debts  = data.debts.map(d => ({
       ...d,
-      freedAllocation: d.freedAllocation === 'global' ? '100' : (d.freedAllocation || '100')
+      freedAllocation: d.freedAllocation === 'global' ? '100' : (d.freedAllocation || '100'),
     }));
-    if (data.nextId)  nextId = data.nextId;
+    if (data.nextId) nextId = data.nextId;
+
+    // UI state (absent in saves from older versions — all guarded with ??)
+    const ui = data.ui;
+    if (!ui) return;
+
+    // Sliders (set value on both range and number input)
+    const setSlider = (sliderId, inputId, val) => {
+      if (val == null) return;
+      const s = $(sliderId); if (s) s.value = val;
+      const i = $(inputId);  if (i) i.value = val;
+    };
+    setSlider('slider-lump',  'lump-input',  ui.lumpSum);
+    setSlider('slider-extra', 'extra-input', ui.extraMonthly);
+
+    // Strategy selects + hints
+    if (ui.lumpStrategy)  { const el = $('lump-strategy');  if (el) { el.value = ui.lumpStrategy;  updateStrategyHint('lump-strategy',  'lump-strategy-hint');  } }
+    if (ui.extraStrategy) { const el = $('extra-strategy'); if (el) { el.value = ui.extraStrategy; updateStrategyHint('extra-strategy', 'extra-strategy-hint'); } }
+
+    // Chart A mode
+    if (ui.chartAMode) {
+      chartAMode = ui.chartAMode;
+      const btn = $('chart-a-toggle');
+      const sub = $('chart-a-subtitle');
+      if (chartAMode === 'gap') {
+        if (btn) btn.textContent = 'Show balances';
+        if (sub) sub.textContent = 'Interest + balance saved vs. minimum payments';
+      }
+    }
+
+    // Compare: distribution parameters
+    if (ui.compareMean != null) { const el = $('compare-mean'); if (el) el.value = ui.compareMean; }
+    if (ui.compareVol  != null) { const el = $('compare-vol');  if (el) el.value = ui.compareVol;  }
+    if (ui.compareTaxRate  != null) { const el = $('compare-tax-rate');  if (el) el.value = ui.compareTaxRate;  }
+
+    // Compare: tax-advantaged checkbox
+    if (ui.compareTaxAdvantaged) {
+      const el = $('compare-tax-advantaged');
+      if (el) {
+        el.checked = true;
+        const field = $('tax-rate-field');
+        if (field) field.style.display = 'none';
+      }
+    }
+
+    // Compare: horizon picker
+    if (ui.compareHorizonYears != null) {
+      document.querySelectorAll('#horizon-picker .seg-btn').forEach(btn => {
+        btn.classList.toggle('active', parseInt(btn.dataset.years) === ui.compareHorizonYears);
+      });
+    }
+
+    // Compare: reopen details if it was open (refreshAll will trigger updateCompareChart)
+    if (ui.compareOpen) {
+      const details = $('compare-details');
+      if (details) details.open = true;
+    }
   } catch (e) {
     console.warn('Could not load from localStorage:', e);
   }
@@ -1553,18 +1633,6 @@ function wireEvents() {
   $('btn-add-debt-empty')?.addEventListener('click', openAddModal);
 
   // Strategy pickers — update simulation on change + show hint
-  const STRATEGY_HINTS = {
-    avalanche:      'Mathematically optimal — minimizes total interest paid.',
-    snowball:       'Best for motivation — quick wins build momentum.',
-    highestPayment: 'Frees up the largest monthly cash flow soonest.',
-    mostInterest:   'Targets the debt costing you the most per month right now.',
-  };
-
-  function updateStrategyHint(selectId, hintId) {
-    const val = $(selectId)?.value;
-    setVal(hintId, val ? (STRATEGY_HINTS[val] || '') : '');
-  }
-
   ['lump-strategy', 'extra-strategy'].forEach(id => {
     const hintId = id + '-hint';
     updateStrategyHint(id, hintId);
@@ -1587,8 +1655,8 @@ function wireEvents() {
     });
   });
 
-  // Compare section: rate inputs and tax rate
-  ['rate-low', 'rate-mid', 'rate-high', 'compare-tax-rate'].forEach(id => {
+  // Compare section: distribution parameters and tax rate
+  ['compare-mean', 'compare-vol', 'compare-tax-rate'].forEach(id => {
     $(id)?.addEventListener('input', updateCompareChart);
   });
 

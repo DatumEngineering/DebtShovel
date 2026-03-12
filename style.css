@@ -1297,6 +1297,15 @@ details[open] .compare-chevron { transform: rotate(180deg); }
 .rate-median    .rate-band-label { color: var(--accent2); }
 .rate-optimistic .rate-band-label { color: var(--warn); }
 
+/* Computed percentile rates (updates live as horizon or μ/σ changes) */
+.computed-rates-display {
+  margin: var(--gap-sm) 0 0;
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  font-style: italic;
+}
+
 /* % suffix — flex sibling inside .slider-number-wrap */
 .input-suffix {
   color: var(--text-muted);
@@ -1349,4 +1358,78 @@ details[open] .compare-chevron { transform: rotate(180deg); }
   .compare-controls { flex-direction: column; }
   .rate-inputs      { flex-direction: column; }
   .compare-toggle-hint { display: none; }
+}
+
+/* ---- Info Disclosure Panel (methodology explanation) ---- */
+
+.info-disclosure {
+  margin: var(--gap-sm) 0 var(--gap);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface2);
+  font-size: 0.82rem;
+}
+
+.info-disclosure-toggle {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem var(--gap);
+  cursor: pointer;
+  user-select: none;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.info-disclosure-toggle::-webkit-details-marker { display: none; }
+
+.info-disclosure-toggle:hover {
+  color: var(--accent);
+}
+
+.info-icon {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.info-disclosure[open] .info-disclosure-toggle {
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+
+.info-disclosure-body {
+  padding: var(--gap);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+
+.info-section h4 {
+  margin: 0 0 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.info-section p,
+.info-section ul {
+  margin: 0 0 0.4rem;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+
+.info-section ul {
+  padding-left: 1.2rem;
+}
+
+.info-section li {
+  margin-bottom: 0.25rem;
+}
+
+.info-section p:last-child,
+.info-section ul:last-child {
+  margin-bottom: 0;
 }

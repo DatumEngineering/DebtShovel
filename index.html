@@ -295,38 +295,30 @@
             </div>
           </div>
 
-          <!-- Pre-tax return rates -->
+          <!-- Return distribution parameters -->
           <div class="compare-control-group compare-rates" role="group" aria-labelledby="rates-label">
-            <span id="rates-label" class="control-label">Pre-tax annual return (invest instead)</span>
+            <span id="rates-label" class="control-label">Equity return assumption (pre-tax)</span>
             <div class="rate-inputs">
-              <label class="rate-input-wrap rate-pessimistic">
-                <span class="rate-band-label">Pessimistic</span>
+              <label class="rate-input-wrap">
+                <span class="rate-band-label">Mean return (μ)</span>
                 <div class="slider-number-wrap">
-                  <input type="number" id="rate-low" class="slider-number-input tabular"
-                         min="0" max="30" step="0.5" value="7"
-                         aria-label="Pessimistic pre-tax annual return %" />
-                  <span class="input-suffix" aria-hidden="true">%</span>
-                </div>
-              </label>
-              <label class="rate-input-wrap rate-median">
-                <span class="rate-band-label">Median</span>
-                <div class="slider-number-wrap">
-                  <input type="number" id="rate-mid" class="slider-number-input tabular"
+                  <input type="number" id="compare-mean" class="slider-number-input tabular"
                          min="0" max="30" step="0.5" value="10.5"
-                         aria-label="Median pre-tax annual return %" />
+                         aria-label="Mean annual equity return %" />
                   <span class="input-suffix" aria-hidden="true">%</span>
                 </div>
               </label>
-              <label class="rate-input-wrap rate-optimistic">
-                <span class="rate-band-label">Optimistic</span>
+              <label class="rate-input-wrap">
+                <span class="rate-band-label">Volatility (σ)</span>
                 <div class="slider-number-wrap">
-                  <input type="number" id="rate-high" class="slider-number-input tabular"
-                         min="0" max="30" step="0.5" value="14"
-                         aria-label="Optimistic pre-tax annual return %" />
+                  <input type="number" id="compare-vol" class="slider-number-input tabular"
+                         min="0" max="50" step="0.5" value="16"
+                         aria-label="Annual return standard deviation %" />
                   <span class="input-suffix" aria-hidden="true">%</span>
                 </div>
               </label>
             </div>
+            <p class="computed-rates-display" id="computed-rates-display" aria-live="polite"></p>
           </div>
 
           <!-- Tax on gains -->
@@ -352,11 +344,51 @@
           </div>
         </div><!-- /.compare-controls -->
 
+        <!-- Info panel: methodology explanation -->
+        <details class="info-disclosure">
+          <summary class="info-disclosure-toggle">
+            <svg class="info-icon" aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none">
+              <circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5"/>
+              <line x1="8" y1="7" x2="8" y2="11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              <circle cx="8" cy="5" r="0.75" fill="currentColor"/>
+            </svg>
+            How are percentile bands calculated?
+          </summary>
+          <div class="info-disclosure-body">
+            <div class="info-section">
+              <h4>What the percentiles mean</h4>
+              <p>The three "Invest instead" lines represent <strong>25th, 50th (median), and 75th percentile</strong> outcomes for a diversified US equity portfolio held over the selected time horizon. One in four outcomes historically fell below the 25th percentile line; one in four exceeded the 75th percentile line. The median is the most likely single outcome — but individual results vary widely, especially over short horizons.</p>
+            </div>
+            <div class="info-section">
+              <h4>Return assumptions (μ and σ)</h4>
+              <p>Default values are derived from long-run US equity history (roughly 1926–present):</p>
+              <ul>
+                <li><strong>Mean annual return (μ): 10.5%</strong> — approximate arithmetic mean of the S&amp;P 500 total return index, pre-inflation, pre-tax.</li>
+                <li><strong>Volatility (σ): 16%</strong> — approximate annual standard deviation of those same returns. Both are rough consensus figures; actual future returns may differ.</li>
+              </ul>
+              <p>You can edit both inputs to reflect different asset allocations (e.g., 60/40 portfolio: μ ≈ 7–8%, σ ≈ 10–11%).</p>
+            </div>
+            <div class="info-section">
+              <h4>Math behind the bands</h4>
+              <p>Equity returns are approximately log-normally distributed. For a log-normal random variable:</p>
+              <ul>
+                <li><strong>Geometric mean (median CAGR):</strong> μ<sub>geo</sub> = μ − σ²/2 (Jensen's inequality correction for compounding)</li>
+                <li><strong>Spread narrows with time (CLT):</strong> σ<sub>CAGR</sub> = σ / √N, where N is the horizon in years. A longer horizon compresses the distribution of annualized outcomes — the 25th and 75th percentile lines converge toward the median as N grows.</li>
+                <li><strong>Percentile cutoffs:</strong> z = ±0.6745 standard deviations from the mean captures exactly the middle 50% of a normal distribution (25th / 75th percentile).</li>
+              </ul>
+              <p>So: <strong>p25 = μ<sub>geo</sub> − 0.6745 · σ<sub>CAGR</sub></strong>, <strong>p75 = μ<sub>geo</sub> + 0.6745 · σ<sub>CAGR</sub></strong>.</p>
+            </div>
+            <div class="info-section">
+              <h4>Tax treatment</h4>
+              <p>Investment gains are modeled with an annual-realization assumption: <strong>effective rate = pre-tax rate × (1 − tax rate)</strong>. This is conservative relative to true buy-and-hold (where gains are only taxed on sale), but simple and honest. Debt interest saved is always tax-free under this model (no mortgage deductibility). Check "Tax-advantaged account" to set tax drag to zero.</p>
+            </div>
+          </div>
+        </details>
+
         <!-- Chart C -->
         <div class="chart-card">
           <div class="chart-card-header">
             <h3>Net Worth Over Time</h3>
-            <span class="chart-subtitle" id="compare-effective-rates"></span>
           </div>
           <div class="chart-wrap" id="chart-c-wrap">
             <canvas id="chart-c" role="img"
@@ -373,15 +405,15 @@
             <span class="value" id="compare-paydebt-val">—</span>
           </div>
           <div class="callout-item">
-            <span class="label">Invest @ <span id="compare-low-pct-label">—</span>% after tax</span>
+            <span class="label">Invest — 25th percentile</span>
             <span class="value neutral" id="compare-low-val">—</span>
           </div>
           <div class="callout-item">
-            <span class="label">Invest @ <span id="compare-mid-pct-label">—</span>% after tax</span>
+            <span class="label">Invest — 50th percentile (median)</span>
             <span class="value neutral" id="compare-mid-val">—</span>
           </div>
           <div class="callout-item">
-            <span class="label">Invest @ <span id="compare-high-pct-label">—</span>% after tax</span>
+            <span class="label">Invest — 75th percentile</span>
             <span class="value neutral" id="compare-high-val">—</span>
           </div>
         </div>
